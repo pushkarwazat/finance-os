@@ -1,0 +1,18 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: customers_to_activity
+    domain: customers
+  spec:
+    description: Join customer master to daily activity snapshots for health metrics.
+    left:
+      entity: dim_customer
+      key: customer_id
+    right:
+      entity: fact_customer_activity
+      key: customer_id
+    type: left
+    symmetric: false
+    fanOut: true   # one customer → many activity rows; pre-aggregate activity first
+    additionalConditions: []
+    dependentMeasures: []

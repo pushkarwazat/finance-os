@@ -1,0 +1,68 @@
+# ── Revenue Domain — Approved Join Paths ──────────────────────────────────────
+# Only joins listed here may be used by the query planner.
+# Unapproved joins are blocked by the no_unapproved_join guardrail.
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: revenue_to_period
+    domain: revenue
+    labels:
+      certified: "true"
+  spec:
+    description: >
+      Join fact_revenue to the fiscal calendar. Required for any query
+      that slices revenue by fiscal_period or fiscal_year.
+    left:
+      entity: fact_revenue
+      key: period_key
+    right:
+      entity: dim_period
+      key: period_key
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: []
+    dependentMeasures: []
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: revenue_to_product
+    domain: revenue
+    labels:
+      certified: "true"
+  spec:
+    description: Join fact_revenue to product hierarchy for product-line slicing.
+    left:
+      entity: fact_revenue
+      key: product_id
+    right:
+      entity: dim_product
+      key: product_id
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: []
+    dependentMeasures: [gross_revenue_amount, net_revenue_amount]
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: revenue_to_segment
+    domain: revenue
+    labels:
+      certified: "true"
+  spec:
+    description: Join fact_revenue to customer segment for segment-level revenue analysis.
+    left:
+      entity: fact_revenue
+      key: customer_id
+    right:
+      entity: dim_customer_segment
+      key: customer_id
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: []
+    dependentMeasures: [gross_revenue_amount, net_revenue_amount]

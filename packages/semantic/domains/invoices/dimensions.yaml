@@ -1,0 +1,77 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: invoice_date
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Invoice Date
+    description: Date the invoice was issued to the customer.
+    column: invoice_date
+    dataType: date
+    cardinality: high
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [day, week, month, quarter, year]
+    synonyms: [invoice date, billed date, billing date, issued date]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: invoice_due_date
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Due Date
+    description: Date by which payment is due.
+    column: due_date
+    dataType: date
+    cardinality: high
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [day, month, quarter]
+    synonyms: [due date, payment due, due]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: invoice_status
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Invoice Status
+    description: Current payment status of the invoice.
+    column: status
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [draft, sent, paid, partial, overdue, voided, disputed]
+    synonyms: [status, payment status, invoice status, state]
+    valueLabels:
+      draft: Draft
+      sent: Sent (Unpaid)
+      paid: Paid in Full
+      partial: Partially Paid
+      overdue: Overdue
+      voided: Voided
+      disputed: Disputed
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: invoice_payment_terms
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Payment Terms
+    description: "Contractual payment terms, e.g. Net 30, Net 60."
+    column: payment_terms
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [Net 15, Net 30, Net 45, Net 60, Net 90, Due on Receipt]
+    synonyms: [terms, payment terms, net days]
+    hidden: false

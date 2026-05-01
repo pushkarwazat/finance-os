@@ -1,0 +1,38 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: dim_customer
+    domain: customers
+    description: >
+      Master customer dimension. One row per customer account.
+      PII fields (email, phone) are excluded from the semantic layer —
+      use customer_id for any cross-domain joins.
+    owner: revenue-ops
+    labels:
+      tier: "1"
+      pii: "true"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: dim_customer
+    displayName: Customer
+    primaryKey: [customer_id]
+    rlsTags: [finance, sales, exec]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_customer_activity
+    domain: customers
+    description: Daily customer activity snapshots for health scoring and churn signals.
+    labels:
+      tier: "2"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_customer_activity
+    displayName: Customer Activity
+    primaryKey: [customer_id, activity_date]
+    rlsTags: [finance, cs]
+    queryable: true

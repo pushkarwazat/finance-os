@@ -1,0 +1,31 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: subscriptions
+  description: Aliases for SaaS subscription and recurring revenue metrics.
+
+synonyms:
+  - canonical: arr
+    kind: metric
+    domain: subscriptions
+    terms: [ARR, annual recurring revenue, annualized revenue, contracted ARR, annual revenue]
+
+  - canonical: mrr
+    kind: metric
+    domain: subscriptions
+    terms: [MRR, monthly recurring revenue, monthly revenue, recurring revenue, monthly contracted]
+
+  - canonical: net_new_arr
+    kind: metric
+    domain: subscriptions
+    terms: [net new ARR, net new MRR, ARR growth, new ARR, ARR change, growth in ARR]
+
+  - canonical: subscription_plan
+    kind: dimension
+    domain: subscriptions
+    terms: [plan, tier, product plan, package, subscription tier, starter, growth, enterprise]
+
+  - canonical: mrr_movement_type
+    kind: dimension
+    domain: subscriptions
+    terms: [movement type, MRR type, new MRR, expansion, contraction, churn, reactivation]

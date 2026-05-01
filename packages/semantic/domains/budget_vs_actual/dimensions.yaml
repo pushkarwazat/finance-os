@@ -1,0 +1,71 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: budget_period
+    entity: fact_budget
+    domain: budget_vs_actual
+  spec:
+    displayName: Budget Period
+    description: Month for which the budget applies.
+    column: budget_month
+    dataType: date
+    cardinality: low
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [month, quarter, year, fiscal_quarter, fiscal_year]
+    synonyms: [period, budget period, budget month, planning period]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: budget_version
+    entity: fact_budget
+    domain: budget_vs_actual
+  spec:
+    displayName: Budget Version
+    description: "Budget iteration label, e.g. 'FY2025 Annual', 'Q3 Reforecast'."
+    column: budget_version
+    dataType: string
+    cardinality: low
+    filterable: true
+    synonyms: [version, budget version, plan version, budget scenario]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: forecast_scenario
+    entity: fact_forecast
+    domain: budget_vs_actual
+  spec:
+    displayName: Forecast Scenario
+    description: "Scenario label: base case, upside, or downside."
+    column: scenario
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [base, upside, downside]
+    synonyms: [scenario, forecast scenario, case, model]
+    valueLabels:
+      base: Base Case
+      upside: Upside Case
+      downside: Downside Case
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: variance_type
+    entity: fact_budget
+    domain: budget_vs_actual
+  spec:
+    displayName: Variance Type
+    description: "Classification of the variance driver: price, volume, mix, timing."
+    column: variance_type
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [price, volume, mix, timing, headcount, other]
+    synonyms: [variance type, driver, variance driver, cause]
+    hidden: false

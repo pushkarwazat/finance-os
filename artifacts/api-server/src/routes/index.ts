@@ -8,6 +8,7 @@ import documentsRouter from "./documents.js";
 import governanceRouter from "./governance.js";
 import evalsRouter from "./evals.js";
 import agentsRouter from "./agents.js";
+import semanticRouter from "./semantic.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(documentsRouter);
 router.use(governanceRouter);
 router.use(evalsRouter);
 router.use(agentsRouter);
+router.use(semanticRouter);
 
 export default router;

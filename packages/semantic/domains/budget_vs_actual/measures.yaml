@@ -1,0 +1,33 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: budget_amount
+    entity: fact_budget
+    domain: budget_vs_actual
+  spec:
+    displayName: Budget Amount
+    description: Approved budget for the period (revenue or expense depending on GL account type).
+    column: budget_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: []
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: forecast_amount
+    entity: fact_forecast
+    domain: budget_vs_actual
+  spec:
+    displayName: Forecast Amount
+    description: Latest forecast amount for the period.
+    column: forecast_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["scenario = 'base'"]
+    nonAdditive: false
+    hidden: false

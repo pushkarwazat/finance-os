@@ -1,0 +1,84 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: total_opex
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: Total Operating Expenses
+    description: Sum of all operating expense GL postings in the period.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["account_type = 'expense'", "is_capex = false"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: headcount_expense
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: Headcount Expense
+    description: Compensation, benefits, and payroll taxes.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["expense_category = 'headcount'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: rd_expense
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: R&D Expense
+    description: All expenses classified to the Research & Development function.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["opex_class = 'R&D'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: sm_expense
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: S&M Expense
+    description: All expenses classified to the Sales & Marketing function.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["opex_class = 'S&M'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: ga_expense
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: G&A Expense
+    description: All expenses classified to General & Administrative function.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["opex_class = 'G&A'"]
+    nonAdditive: false
+    hidden: false

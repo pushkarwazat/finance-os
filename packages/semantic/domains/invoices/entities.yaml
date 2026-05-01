@@ -1,0 +1,38 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_invoice
+    domain: invoices
+    description: >
+      Invoice fact table. One row per invoice issued to a customer.
+      Contains billed amounts, due dates, and payment status.
+      Note: billed ≠ recognized — use the revenue domain for ASC 606 amounts.
+    owner: ar-team
+    labels:
+      tier: "1"
+      pii: "false"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_invoice
+    displayName: Invoices
+    primaryKey: [invoice_id]
+    rlsTags: [finance, ar]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_invoice_line
+    domain: invoices
+    description: Line-item detail within each invoice. Use for SKU/product-level billing analysis.
+    labels:
+      tier: "2"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_invoice_line
+    displayName: Invoice Line Items
+    primaryKey: [invoice_id, line_number]
+    rlsTags: [finance, ar]
+    queryable: false  # always joined through fact_invoice

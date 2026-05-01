@@ -1,0 +1,18 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: invoice_to_line_items
+    domain: invoices
+  spec:
+    description: Join invoice header to line-item detail for SKU-level analysis.
+    left:
+      entity: fact_invoice
+      key: invoice_id
+    right:
+      entity: fact_invoice_line
+      key: invoice_id
+    type: left
+    symmetric: false
+    fanOut: true   # one invoice → many lines; aggregate lines before joining header
+    additionalConditions: []
+    dependentMeasures: [invoice_billed_amount]

@@ -1,0 +1,26 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: invoices
+  description: Aliases for invoice and AR metrics.
+
+synonyms:
+  - canonical: ar_balance
+    kind: metric
+    domain: invoices
+    terms: [AR, AR balance, accounts receivable, receivables, outstanding invoices, open AR]
+
+  - canonical: dso
+    kind: metric
+    domain: invoices
+    terms: [DSO, days sales outstanding, collection days, days receivable, average collection period]
+
+  - canonical: invoice_status
+    kind: dimension
+    domain: invoices
+    terms: [status, payment status, invoice status, paid, overdue, outstanding]
+
+  - canonical: invoice_due_date
+    kind: dimension
+    domain: invoices
+    terms: [due date, due, payment due, payment deadline]

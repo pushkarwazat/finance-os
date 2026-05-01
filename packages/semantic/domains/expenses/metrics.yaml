@@ -1,0 +1,138 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: burn_rate
+    slug: burn_rate
+    domain: expenses
+    version: "1.3.0"
+    owner: fp-and-a
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Burn Rate
+    shortLabel: Burn
+    description: >
+      Net cash outflow per month: total operating expenses minus cash collected.
+      Gross burn = total OpEx; Net burn = OpEx - Revenue.
+      Critical metric for runway calculation. Lower is better.
+    type: derived
+    formula: "total_opex - cash_collected"
+    dependencies: [cash_collected]
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - expense_date
+      - expense_category
+      - department
+      - opex_classification
+    timeDimension: expense_date
+    thresholds:
+      direction: lower_is_better
+    glossaryRef: burn_rate
+    synonyms:
+      - burn rate
+      - burn
+      - monthly burn
+      - net burn
+      - cash burn
+      - cash outflow
+    tags: [cash_flow, kpi, runway, expenses]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: total_opex
+    slug: total_opex
+    domain: expenses
+    version: "1.0.0"
+    owner: fp-and-a
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Total OpEx
+    shortLabel: OpEx
+    description: >
+      Total operating expenses in the period, excluding COGS.
+      Covers R&D, S&M, and G&A functions. Used for operational efficiency analysis.
+    type: simple
+    measure: total_opex
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - expense_date
+      - expense_category
+      - department
+      - opex_classification
+    timeDimension: expense_date
+    thresholds:
+      direction: lower_is_better
+    glossaryRef: total_opex
+    synonyms:
+      - opex
+      - operating expenses
+      - total expenses
+      - total opex
+      - spend
+      - costs
+    tags: [expenses, kpi, p_and_l]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Controller
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: rd_ratio
+    slug: rd_ratio
+    domain: expenses
+    version: "1.0.0"
+    owner: fp-and-a
+    reviewCycle: quarterly
+  spec:
+    displayName: R&D % of Revenue
+    shortLabel: R&D %
+    description: >
+      R&D expense as a percentage of net revenue. Benchmarks: early-stage SaaS 25-35%,
+      growth stage 15-25%, mature SaaS 10-15%.
+    type: ratio
+    numerator: rd_expense
+    denominator: net_revenue_amount
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - expense_date
+      - opex_classification
+    timeDimension: expense_date
+    thresholds:
+      direction: lower_is_better
+      warning: 0.30
+      critical: 0.40
+    synonyms:
+      - R&D ratio
+      - R&D as % of revenue
+      - research and development ratio
+    tags: [expenses, efficiency, ratio]
+    selfServe: true
+    public: false
+    certified: false

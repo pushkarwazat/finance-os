@@ -1,0 +1,21 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: collections
+  description: Aliases for AR collections metrics and dimensions.
+
+synonyms:
+  - canonical: collections_rate
+    kind: metric
+    domain: collections
+    terms: [collections rate, collection rate, cure rate, resolution rate, collection efficiency]
+
+  - canonical: bad_debt_exposure
+    kind: metric
+    domain: collections
+    terms: [bad debt, bad debt exposure, 90+ AR, write-off risk, doubtful accounts, uncollectible]
+
+  - canonical: aging_bucket
+    kind: dimension
+    domain: collections
+    terms: [aging, bucket, days past due, DPD, overdue bucket, aging bucket, current, 90 plus]

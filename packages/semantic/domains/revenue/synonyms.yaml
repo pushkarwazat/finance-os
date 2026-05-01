@@ -1,0 +1,125 @@
+# ── Revenue Domain — Synonym Map ──────────────────────────────────────────────
+
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: revenue
+  description: Business-friendly aliases for revenue metrics and dimensions.
+
+synonyms:
+  # ── Metric synonyms ─────────────────────────────────────────────────────
+  - canonical: total_revenue
+    kind: metric
+    domain: revenue
+    terms:
+      - revenue
+      - total revenue
+      - gross revenue
+      - top line
+      - topline
+      - recognized revenue
+      - total recognized revenue
+      - sales
+      - total sales
+    context: default
+
+  - canonical: net_revenue
+    kind: metric
+    domain: revenue
+    terms:
+      - net revenue
+      - revenue after discounts
+      - adjusted revenue
+      - net sales
+    context: default
+
+  - canonical: gross_margin
+    kind: metric
+    domain: revenue
+    terms:
+      - gross margin
+      - GM
+      - gross profit margin
+      - GP margin
+      - gross profit %
+      - gross margin percentage
+    context: default
+
+  - canonical: net_revenue_retention
+    kind: metric
+    domain: revenue
+    terms:
+      - NRR
+      - net revenue retention
+      - net dollar retention
+      - NDR
+      - net retention
+      - dollar-based retention
+    context: saas
+
+  - canonical: budget_variance_revenue
+    kind: metric
+    domain: revenue
+    terms:
+      - revenue variance
+      - revenue vs budget
+      - budget miss
+      - budget beat
+      - vs plan revenue
+      - revenue gap
+    context: planning
+
+  # ── Dimension synonyms ──────────────────────────────────────────────────
+  - canonical: customer_segment
+    kind: dimension
+    domain: revenue
+    terms:
+      - segment
+      - market segment
+      - customer segment
+      - customer type
+      - tier
+      - smb
+      - mid-market
+      - enterprise
+    context: default
+
+  - canonical: product_line
+    kind: dimension
+    domain: revenue
+    terms:
+      - product
+      - product line
+      - product family
+      - offering
+      - sku
+      - product category
+    context: default
+
+  - canonical: geo_region
+    kind: dimension
+    domain: revenue
+    terms:
+      - region
+      - geography
+      - geo
+      - territory
+      - area
+      - americas
+      - emea
+      - apac
+    context: default
+
+  - canonical: fiscal_period
+    kind: dimension
+    domain: revenue
+    terms:
+      - quarter
+      - period
+      - fiscal quarter
+      - reporting period
+      - q1
+      - q2
+      - q3
+      - q4
+    context: default

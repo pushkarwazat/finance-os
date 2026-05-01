@@ -1,0 +1,89 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: collections_rate
+    slug: collections_rate
+    domain: collections
+    version: "1.1.0"
+    owner: ar-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Collections Rate
+    shortLabel: Coll. Rate
+    description: >
+      Percentage of overdue invoices resolved (paid or settled) within a period.
+      Computed as: invoices cured / invoices that entered collections.
+      Target: > 90% within 60 days of becoming overdue.
+    type: ratio
+    numerator: aging_amount
+    denominator: overdue_aging_amount
+    formula: "1 - (overdue_aging_amount / total_ar_balance)"
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - aging_bucket
+      - aging_snapshot_date
+    timeDimension: aging_snapshot_date
+    thresholds:
+      direction: higher_is_better
+      warning: 0.85
+      critical: 0.75
+    glossaryRef: collections_rate
+    synonyms:
+      - collections rate
+      - collection efficiency
+      - cure rate
+      - resolution rate
+    tags: [ar, collections, kpi, efficiency]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Controller
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: bad_debt_exposure
+    slug: bad_debt_exposure
+    domain: collections
+    version: "1.0.0"
+    owner: ar-team
+    reviewCycle: monthly
+  spec:
+    displayName: Bad Debt Exposure
+    shortLabel: Bad Debt
+    description: >
+      AR balance more than 90 days past due — the portion most likely to require
+      a bad-debt provision or write-off. Tracked separately for reserve calculations.
+    type: simple
+    measure: ninety_plus_amount
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - aging_bucket
+      - aging_snapshot_date
+    timeDimension: aging_snapshot_date
+    thresholds:
+      direction: lower_is_better
+    glossaryRef: bad_debt_exposure
+    synonyms:
+      - bad debt
+      - bad debt exposure
+      - 90+ AR
+      - write-off risk
+      - doubtful accounts
+    tags: [ar, collections, risk]
+    selfServe: true
+    public: false
+    certified: false

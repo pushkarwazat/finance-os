@@ -1,0 +1,55 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_expense
+    domain: expenses
+    description: >
+      Operating expense transactions. One row per expense line item.
+      Sourced from the ERP general ledger. Excludes COGS (use revenue domain)
+      and capital expenditures (use capex domain).
+    owner: fp-and-a
+    labels:
+      tier: "1"
+      pii: "false"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_gl_expense
+    displayName: Expenses
+    primaryKey: [transaction_id]
+    rlsTags: [finance, exec]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: dim_cost_center
+    domain: expenses
+    description: Organizational cost center hierarchy (department → team → sub-team).
+    labels:
+      tier: "1"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: dim_cost_center
+    displayName: Cost Center
+    primaryKey: [cost_center_id]
+    rlsTags: [finance, exec]
+    queryable: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: dim_gl_account
+    domain: expenses
+    description: General ledger account dimension with account type and category mappings.
+    labels:
+      tier: "1"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: dim_gl_account
+    displayName: GL Account
+    primaryKey: [account_id]
+    rlsTags: [finance]
+    queryable: false

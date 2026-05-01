@@ -1,0 +1,191 @@
+{
+  "domain": "revenue",
+  "version": "1.0.0",
+  "compiledAt": "2025-11-01T00:00:00.000Z",
+  "entities": [
+    {
+      "warehouse": "snowflake",
+      "schema": "finance",
+      "table": "fact_revenue",
+      "displayName": "Revenue Transactions",
+      "primaryKey": ["revenue_id"],
+      "rlsTags": ["finance", "exec"],
+      "queryable": true
+    },
+    {
+      "warehouse": "snowflake",
+      "schema": "finance",
+      "table": "dim_fiscal_period",
+      "displayName": "Fiscal Period",
+      "primaryKey": ["period_key"],
+      "rlsTags": [],
+      "queryable": false
+    }
+  ],
+  "dimensions": [
+    {
+      "displayName": "Revenue Date",
+      "description": "Date on which revenue was recognized per ASC 606.",
+      "column": "recognized_date",
+      "dataType": "date",
+      "cardinality": "high",
+      "filterable": true,
+      "isTimeDimension": true,
+      "timeGranularities": ["day", "week", "month", "quarter", "year", "fiscal_quarter", "fiscal_year"],
+      "synonyms": ["date", "period", "when", "recognized date", "booking date"],
+      "hidden": false
+    },
+    {
+      "displayName": "Revenue Type",
+      "description": "Classification of revenue stream.",
+      "column": "revenue_type",
+      "dataType": "string",
+      "cardinality": "low",
+      "filterable": true,
+      "allowedValues": ["subscription", "professional_services", "usage", "one_time", "support"],
+      "synonyms": ["type", "stream", "category", "revenue category"],
+      "isTimeDimension": false,
+      "hidden": false
+    },
+    {
+      "displayName": "Customer Segment",
+      "description": "Segment tier: SMB, Mid-Market, or Enterprise.",
+      "column": "segment_name",
+      "dataType": "string",
+      "cardinality": "low",
+      "filterable": true,
+      "allowedValues": ["SMB", "Mid-Market", "Enterprise"],
+      "synonyms": ["segment", "tier", "market segment", "customer type", "size"],
+      "isTimeDimension": false,
+      "hidden": false
+    },
+    {
+      "displayName": "Region",
+      "description": "Geographic sales region.",
+      "column": "geo_region",
+      "dataType": "string",
+      "cardinality": "low",
+      "filterable": true,
+      "allowedValues": ["Americas", "EMEA", "APAC"],
+      "synonyms": ["region", "geography", "geo", "territory", "area"],
+      "isTimeDimension": false,
+      "hidden": false
+    }
+  ],
+  "measures": [
+    {
+      "displayName": "Gross Revenue Amount",
+      "description": "Sum of gross revenue before deductions.",
+      "column": "gross_amount_usd",
+      "aggregation": "sum",
+      "dataType": "currency",
+      "grain": "monthly",
+      "defaultFilters": [],
+      "nonAdditive": false,
+      "hidden": false
+    },
+    {
+      "displayName": "Net Revenue Amount",
+      "description": "Revenue after all deductions.",
+      "column": "net_amount_usd",
+      "aggregation": "sum",
+      "dataType": "currency",
+      "grain": "monthly",
+      "defaultFilters": ["status NOT IN ('voided', 'reversed')"],
+      "nonAdditive": false,
+      "hidden": false
+    },
+    {
+      "displayName": "Cost of Goods Sold",
+      "description": "Direct costs attributable to recognized revenue.",
+      "column": "cogs_amount_usd",
+      "aggregation": "sum",
+      "dataType": "currency",
+      "grain": "monthly",
+      "defaultFilters": [],
+      "nonAdditive": false,
+      "hidden": false
+    }
+  ],
+  "metrics": [
+    {
+      "displayName": "Total Revenue",
+      "shortLabel": "Revenue",
+      "description": "Total gross revenue recognized in the period per ASC 606.",
+      "type": "simple",
+      "measure": "gross_revenue_amount",
+      "unit": "currency",
+      "currency": "USD",
+      "formatting": { "prefix": "$", "decimals": 0, "abbreviate": true },
+      "grain": "monthly",
+      "allowedDimensions": ["revenue_date", "fiscal_period", "fiscal_year", "revenue_type", "customer_segment", "product_line", "geo_region"],
+      "timeDimension": "revenue_date",
+      "thresholds": { "direction": "higher_is_better", "warning": 90000000, "critical": 80000000 },
+      "glossaryRef": "total_revenue",
+      "synonyms": ["revenue", "top line", "gross revenue", "total recognized revenue"],
+      "tags": ["income_statement", "kpi", "top_line", "tier_1"],
+      "selfServe": true,
+      "public": false,
+      "certified": true,
+      "certifiedBy": "CFO Office",
+      "dependencies": []
+    },
+    {
+      "displayName": "Gross Margin",
+      "shortLabel": "GM%",
+      "description": "(Net Revenue - COGS) / Net Revenue. Measures product profitability.",
+      "type": "ratio",
+      "formula": "(net_revenue_amount - cogs_amount) / net_revenue_amount",
+      "dependencies": ["net_revenue", "cogs"],
+      "unit": "percentage",
+      "currency": "USD",
+      "formatting": { "suffix": "%", "decimals": 1, "abbreviate": false },
+      "grain": "monthly",
+      "allowedDimensions": ["fiscal_period", "fiscal_year", "product_line", "customer_segment"],
+      "timeDimension": "revenue_date",
+      "thresholds": { "direction": "higher_is_better", "warning": 0.65, "critical": 0.60 },
+      "glossaryRef": "gross_margin",
+      "synonyms": ["gross margin", "GM", "gross profit margin"],
+      "tags": ["income_statement", "kpi", "margin", "tier_1"],
+      "selfServe": true,
+      "public": false,
+      "certified": true,
+      "certifiedBy": "CFO Office"
+    }
+  ],
+  "joins": [
+    {
+      "description": "Join fact_revenue to the fiscal calendar.",
+      "left": { "entity": "fact_revenue", "key": "period_key" },
+      "right": { "entity": "dim_period", "key": "period_key" },
+      "type": "left",
+      "symmetric": false,
+      "fanOut": false,
+      "additionalConditions": [],
+      "dependentMeasures": []
+    }
+  ],
+  "synonymMap": {
+    "revenue": "total_revenue",
+    "top line": "total_revenue",
+    "gross revenue": "total_revenue",
+    "topline": "total_revenue",
+    "sales": "total_revenue",
+    "total sales": "total_revenue",
+    "net revenue": "net_revenue",
+    "net sales": "net_revenue",
+    "adjusted revenue": "net_revenue",
+    "gross margin": "gross_margin",
+    "gm": "gross_margin",
+    "gross profit margin": "gross_margin",
+    "nrr": "net_revenue_retention",
+    "net dollar retention": "net_revenue_retention",
+    "ndr": "net_revenue_retention",
+    "segment": "customer_segment",
+    "tier": "customer_segment",
+    "region": "geo_region",
+    "geography": "geo_region",
+    "quarter": "fiscal_period",
+    "period": "fiscal_period"
+  }
+}

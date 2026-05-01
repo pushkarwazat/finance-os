@@ -1,0 +1,20 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: payments_to_invoices
+    domain: payments
+  spec:
+    description: >
+      Join payments to invoices for cash-application analysis.
+      Cross-domain join: payments domain → invoices domain.
+    left:
+      entity: fact_payment
+      key: invoice_id
+    right:
+      entity: fact_invoice
+      key: invoice_id
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: ["fact_payment.status = 'cleared'"]
+    dependentMeasures: [cash_collected]

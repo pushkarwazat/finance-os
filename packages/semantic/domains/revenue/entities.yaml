@@ -1,0 +1,77 @@
+# ── Revenue Domain — Entities ─────────────────────────────────────────────────
+# Logical tables exposed to the semantic layer. Physical DDL is never surfaced
+# to analysts; they see only the displayName and approved dimensions/measures.
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_revenue
+    domain: revenue
+    description: >
+      Central revenue fact table. One row per recognized revenue event.
+      Conformed to ASC 606 — amounts represent recognized (not billed) revenue.
+    owner: finance-team
+    labels:
+      tier: "1"
+      pii: "false"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_revenue
+    displayName: Revenue Transactions
+    primaryKey: [revenue_id]
+    rlsTags: [finance, exec]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: dim_period
+    domain: revenue
+    description: >
+      Fiscal calendar dimension. Maps calendar dates to fiscal periods,
+      quarters, and years. Use this — never compute fiscal periods inline.
+    labels:
+      tier: "1"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: dim_fiscal_period
+    displayName: Fiscal Period
+    primaryKey: [period_key]
+    rlsTags: []
+    queryable: false  # join-only — always accessed through fact tables
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: dim_product
+    domain: revenue
+    description: Product and SKU hierarchy used for revenue attribution.
+    labels:
+      tier: "2"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: dim_product
+    displayName: Product
+    primaryKey: [product_id]
+    rlsTags: [finance]
+    queryable: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: dim_customer_segment
+    domain: revenue
+    description: Customer segment dimension for revenue slicing (SMB / Mid-Market / Enterprise).
+    labels:
+      tier: "2"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: dim_customer_segment
+    displayName: Customer Segment
+    primaryKey: [segment_id]
+    rlsTags: [finance, sales]
+    queryable: false

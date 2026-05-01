@@ -1,0 +1,18 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: budget_to_forecast
+    domain: budget_vs_actual
+  spec:
+    description: Join budget to forecast for plan vs latest estimate comparison.
+    left:
+      entity: fact_budget
+      key: budget_period_key
+    right:
+      entity: fact_forecast
+      key: period_key
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: ["fact_forecast.scenario = 'base'"]
+    dependentMeasures: [budget_amount, forecast_amount]

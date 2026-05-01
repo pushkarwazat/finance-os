@@ -1,0 +1,97 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: ar_balance
+    slug: ar_balance
+    domain: invoices
+    version: "1.4.0"
+    owner: ar-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: AR Balance
+    shortLabel: AR
+    description: >
+      Total open accounts receivable balance — sum of all unpaid invoice amounts
+      across customers. Represents cash that has been billed but not yet collected.
+      Includes current and overdue receivables.
+    type: simple
+    measure: invoice_open_amount
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - invoice_date
+      - invoice_due_date
+      - invoice_status
+      - invoice_payment_terms
+    timeDimension: invoice_due_date
+    thresholds:
+      direction: lower_is_better
+    glossaryRef: ar_balance
+    synonyms:
+      - AR balance
+      - accounts receivable
+      - AR
+      - outstanding receivables
+      - receivables
+      - open invoices
+    tags: [ar, balance_sheet, kpi, cash_flow]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Controller
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: dso
+    slug: dso
+    domain: invoices
+    version: "1.2.0"
+    owner: ar-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Days Sales Outstanding
+    shortLabel: DSO
+    description: >
+      Average number of days it takes to collect payment after an invoice is issued.
+      Calculated as: (AR Balance / Total Revenue) × Days in Period.
+      Industry benchmark: Net 30 terms → target DSO < 45 days.
+      Rising DSO indicates collection issues or customer financial stress.
+    type: derived
+    formula: "(ar_balance / total_revenue) * days_in_period"
+    dependencies: [ar_balance, total_revenue]
+    unit: days
+    formatting:
+      suffix: " days"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - invoice_payment_terms
+      - invoice_status
+    timeDimension: invoice_date
+    thresholds:
+      direction: lower_is_better
+      warning: 45
+      critical: 60
+    glossaryRef: dso
+    synonyms:
+      - DSO
+      - days sales outstanding
+      - days receivable
+      - collection days
+      - average collection period
+    tags: [ar, efficiency, kpi, cash_flow]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Controller

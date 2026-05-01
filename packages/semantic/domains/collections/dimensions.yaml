@@ -1,0 +1,57 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: aging_bucket
+    entity: fact_aging_bucket
+    domain: collections
+  spec:
+    displayName: Aging Bucket
+    description: Days-past-due bucket for AR aging analysis.
+    column: aging_bucket
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [current, "1-30", "31-60", "61-90", "90+"]
+    synonyms: [aging, bucket, days past due, DPD, aging bucket]
+    valueLabels:
+      current: Current (not yet due)
+      1-30: 1–30 Days Past Due
+      31-60: 31–60 Days Past Due
+      61-90: 61–90 Days Past Due
+      90+: 90+ Days Past Due
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: collection_action_type
+    entity: fact_collection_action
+    domain: collections
+  spec:
+    displayName: Action Type
+    description: Type of collection action taken.
+    column: action_type
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [email, phone_call, escalation, legal_notice, write_off]
+    synonyms: [action, collection action, contact type, touchpoint]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: aging_snapshot_date
+    entity: fact_aging_bucket
+    domain: collections
+  spec:
+    displayName: Aging Snapshot Date
+    description: Month-end date of the AR aging snapshot.
+    column: snapshot_date
+    dataType: date
+    cardinality: medium
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [month, quarter, year]
+    synonyms: [snapshot date, aging date, as of date, period end]
+    hidden: false

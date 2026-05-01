@@ -1,0 +1,42 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_subscription
+    domain: subscriptions
+    description: >
+      Subscription lifecycle fact table. One row per subscription-period record.
+      Tracks MRR movements: new, expansion, contraction, churn, and reactivation.
+      This is the source of truth for ARR/MRR and NRR calculations.
+    owner: revenue-ops
+    labels:
+      tier: "1"
+      pii: "false"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_subscription
+    displayName: Subscriptions
+    primaryKey: [subscription_id, period_key]
+    rlsTags: [finance, sales, exec]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_mrr_movement
+    domain: subscriptions
+    description: >
+      MRR waterfall movements. One row per subscription × movement type per month.
+      Movement types: new, expansion, contraction, churn, reactivation.
+      Sum of all movements = net new MRR.
+    owner: revenue-ops
+    labels:
+      tier: "1"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_mrr_movement
+    displayName: MRR Movements
+    primaryKey: [movement_id]
+    rlsTags: [finance, sales, exec]
+    queryable: true

@@ -1,0 +1,41 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: budget_vs_actual
+  description: Aliases for planning, budget, and variance metrics.
+
+synonyms:
+  - canonical: budget_variance
+    kind: metric
+    domain: budget_vs_actual
+    terms:
+      - variance
+      - budget variance
+      - actual vs budget
+      - vs budget
+      - vs plan
+      - plan variance
+      - budget miss
+      - budget beat
+      - above budget
+      - below budget
+
+  - canonical: budget_attainment
+    kind: metric
+    domain: budget_vs_actual
+    terms:
+      - attainment
+      - budget attainment
+      - vs budget %
+      - budget achievement
+      - actual vs budget percent
+
+  - canonical: budget_period
+    kind: dimension
+    domain: budget_vs_actual
+    terms: [period, budget month, planning period, budget period, reporting month]
+
+  - canonical: forecast_scenario
+    kind: dimension
+    domain: budget_vs_actual
+    terms: [scenario, base case, upside, downside, forecast scenario]

@@ -1,0 +1,93 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: cash_collected
+    slug: cash_collected
+    domain: payments
+    version: "1.1.0"
+    owner: ar-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Cash Collected
+    shortLabel: Cash
+    description: >
+      Total cash received from customers (cleared payments only).
+      Distinct from recognized revenue — this is actual cash in the door.
+      Used for cash flow and treasury forecasting.
+    type: simple
+    measure: cash_collected
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - payment_date
+      - payment_method
+      - payment_status
+    timeDimension: payment_date
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: cash_collected
+    synonyms:
+      - cash collected
+      - collections
+      - cash receipts
+      - payments received
+      - cash in
+    tags: [cash_flow, ar, treasury, kpi]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Controller
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: collections_rate
+    slug: collections_rate
+    domain: payments
+    version: "1.0.0"
+    owner: ar-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Collections Rate
+    shortLabel: Coll. Rate
+    description: >
+      Cash collected / Total invoiced amount in the period.
+      Measures how effectively the AR team converts billed revenue into cash.
+      Target: > 95%. Below 90% signals collections process breakdown.
+    type: ratio
+    numerator: cash_collected
+    denominator: invoice_billed_amount
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - payment_date
+      - payment_method
+    timeDimension: payment_date
+    thresholds:
+      direction: higher_is_better
+      warning: 0.90
+      critical: 0.85
+    glossaryRef: collections_rate
+    synonyms:
+      - collections rate
+      - collection efficiency
+      - payment rate
+      - cash conversion rate
+    tags: [ar, efficiency, kpi, cash_flow]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Controller

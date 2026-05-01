@@ -1,0 +1,52 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: aging_amount
+    entity: fact_aging_bucket
+    domain: collections
+  spec:
+    displayName: Aging Balance
+    description: Total AR balance in a given aging bucket at the snapshot date.
+    column: balance_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: []
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: overdue_aging_amount
+    entity: fact_aging_bucket
+    domain: collections
+  spec:
+    displayName: Overdue AR Balance
+    description: AR balance in all past-due buckets (1-30, 31-60, 61-90, 90+).
+    column: balance_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["aging_bucket != 'current'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: ninety_plus_amount
+    entity: fact_aging_bucket
+    domain: collections
+  spec:
+    displayName: 90+ Day AR Balance
+    description: >
+      AR balance more than 90 days past due. High-risk for write-off.
+      Amounts here typically require legal escalation or bad-debt provision.
+    column: balance_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["aging_bucket = '90+'"]
+    nonAdditive: false
+    hidden: false

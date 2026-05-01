@@ -1,0 +1,86 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: invoice_billed_amount
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Billed Amount
+    description: Total billed amount on the invoice (face value before payments).
+    column: billed_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status != 'voided'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: invoice_open_amount
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Open Invoice Amount
+    description: Unpaid balance across all open invoices (billed - payments received).
+    column: open_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status IN ('sent', 'partial', 'overdue')"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: invoice_count
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Invoice Count
+    description: Number of distinct invoices issued in the period.
+    column: invoice_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: ["status != 'voided'"]
+    nonAdditive: true
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: overdue_invoice_amount
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Overdue Invoice Amount
+    description: Sum of unpaid amounts on invoices past their due date.
+    column: open_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status = 'overdue'", "due_date < CURRENT_DATE"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: days_sales_outstanding_raw
+    entity: fact_invoice
+    domain: invoices
+  spec:
+    displayName: Days Sales Outstanding (raw)
+    description: >
+      Average days between invoice date and payment date.
+      Used as the numerator component for the DSO metric.
+    column: days_to_pay
+    aggregation: avg
+    dataType: number
+    grain: monthly
+    defaultFilters: ["status = 'paid'"]
+    nonAdditive: true   # avg is non-additive
+    hidden: true        # used by DSO metric only

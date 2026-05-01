@@ -1,0 +1,109 @@
+# ── Revenue Domain — Measures ─────────────────────────────────────────────────
+# Measures are raw aggregates on entity columns. Metrics are derived from measures.
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: gross_revenue_amount
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Gross Revenue Amount
+    description: Sum of gross revenue before deductions (discounts, credits, returns).
+    column: gross_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: []
+    allowedDimensions:
+      - revenue_date
+      - fiscal_period
+      - fiscal_year
+      - revenue_type
+      - customer_segment
+      - product_line
+      - geo_region
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: net_revenue_amount
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Net Revenue Amount
+    description: Revenue after all deductions — discounts, credits, and returns removed.
+    column: net_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status NOT IN ('voided', 'reversed')"]
+    allowedDimensions:
+      - revenue_date
+      - fiscal_period
+      - fiscal_year
+      - revenue_type
+      - customer_segment
+      - product_line
+      - geo_region
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: cogs_amount
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Cost of Goods Sold
+    description: Direct costs attributable to recognized revenue in the period.
+    column: cogs_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: []
+    allowedDimensions:
+      - revenue_date
+      - fiscal_period
+      - fiscal_year
+      - product_line
+      - geo_region
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: revenue_transaction_count
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Revenue Transaction Count
+    description: Number of distinct recognized revenue events in the period.
+    column: revenue_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: []
+    nonAdditive: true   # count_distinct is non-additive across time
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: discount_amount
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Discount Amount
+    description: Total discount given in the period (reduces gross → net).
+    column: discount_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: []
+    nonAdditive: false
+    hidden: false

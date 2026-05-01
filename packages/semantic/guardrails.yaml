@@ -1,0 +1,206 @@
+apiVersion: semantics.financeos.io/v1
+kind: Guardrails
+metadata:
+  description: >
+    Query guardrails for the FinanceOS semantic layer. These rules are evaluated
+    by the query planner before any query is dispatched. Violations at severity
+    'block' abort the query; 'warn' proceed with a warning; 'log' are silent.
+
+guardrails:
+  # ── Security & PII ────────────────────────────────────────────────────────
+
+  - id: no_pii_dimensions
+    name: No PII Field Exposure
+    description: >
+      Blocks queries that reference known PII columns (email, phone, SSN, etc.).
+      These columns are excluded from the semantic layer entirely, but this
+      guardrail provides a defense-in-depth check.
+    severity: block
+    pattern:
+      type: keywords
+      values:
+        - email
+        - phone_number
+        - ssn
+        - social_security
+        - tax_id
+        - date_of_birth
+        - home_address
+        - personal_address
+    suggestion: >
+      PII fields are not available in the analytics layer. If you need
+      to identify a specific customer, use customer_id and contact the
+      Data Privacy team for approved access procedures.
+    overridableBy: [data_privacy_admin]
+
+  - id: no_raw_table_reference
+    name: No Raw Table Reference
+    description: >
+      Blocks queries that attempt to reference physical table names directly
+      (e.g. "fact_revenue", "dim_customer"). All data access must go through
+      semantic layer entities and approved dimensions.
+    severity: block
+    pattern:
+      type: regex
+      value: '\b(fact|dim)_[a-z_]+\b'
+    suggestion: >
+      Reference metrics and dimensions by their semantic names, not physical
+      table names. E.g., use 'Total Revenue' instead of 'fact_revenue'.
+    overridableBy: []
+
+  - id: no_system_tables
+    name: No System Table Access
+    description: Blocks any attempt to query warehouse system tables or metadata.
+    severity: block
+    pattern:
+      type: keywords
+      values:
+        - information_schema
+        - sys.tables
+        - pg_catalog
+        - _dbt_
+        - __stg_
+        - snowflake.account_usage
+    suggestion: Schema browsing is not available through the analytics layer.
+    overridableBy: [platform_admin]
+
+  # ── Query Safety ──────────────────────────────────────────────────────────
+
+  - id: require_time_filter
+    name: Require Time Filter on Large Scans
+    description: >
+      Warns when a query over a large fact table has no time dimension filter.
+      Full table scans over fact_revenue or fact_invoice can be very expensive.
+    severity: warn
+    pattern:
+      type: structural
+      rule: require_time_filter
+    suggestion: >
+      Add a time range to your query (e.g., "last quarter" or "year to date")
+      to limit the data scanned and improve performance.
+    overridableBy: [finance_admin, data_engineer]
+
+  - id: max_join_depth
+    name: Maximum Join Depth
+    description: >
+      Warns when a query requires more than 3 join hops. Deep join chains
+      can produce incorrect results if fan-out joins are not handled correctly.
+    severity: warn
+    pattern:
+      type: structural
+      rule: max_join_depth
+      params:
+        max: 3
+    suggestion: >
+      Simplify your query by focusing on one domain at a time. Cross-domain
+      queries should be reviewed by the FP&A data team before running.
+    overridableBy: [finance_admin]
+
+  - id: no_cross_domain_join
+    name: Cross-Domain Join Warning
+    description: >
+      Warns when a query spans more than one semantic domain (e.g., revenue + expenses).
+      Cross-domain queries are permitted but require careful interpretation.
+    severity: warn
+    pattern:
+      type: structural
+      rule: no_cross_domain_join
+    suggestion: >
+      Cross-domain queries are supported but may involve fan-out joins.
+      Verify your results against a pre-built report if the numbers look unexpected.
+    overridableBy: [finance_admin, data_engineer]
+
+  # ── Prohibited Patterns ───────────────────────────────────────────────────
+
+  - id: no_individual_salary
+    name: No Individual Salary Queries
+    description: >
+      Blocks queries that attempt to expose individual employee compensation data.
+      Headcount expense is only available aggregated at department level.
+    severity: block
+    pattern:
+      type: keywords
+      values:
+        - salary
+        - compensation
+        - pay
+        - payroll by person
+        - employee pay
+        - individual compensation
+        - how much does
+    suggestion: >
+      Individual compensation data is confidential. Headcount expense is
+      available aggregated by department, team, and opex classification.
+      Contact HR for workforce analytics.
+    overridableBy: [hr_admin, cfo]
+
+  - id: no_customer_pii_join
+    name: No Customer PII Cross-Reference
+    description: >
+      Blocks queries that attempt to join revenue or payment data with
+      customer contact information (name, email).
+    severity: block
+    pattern:
+      type: keywords
+      values:
+        - customer name
+        - customer email
+        - billing email
+        - contact name
+        - full name
+    suggestion: >
+      Customer contact information is not available in the analytics layer.
+      Use customer_id for joins and contact the CRM team for identity resolution.
+    overridableBy: [data_privacy_admin]
+
+  - id: no_future_period_actuals
+    name: No Future-Period Actuals Query
+    description: >
+      Warns when a query asks for actuals in a future fiscal period.
+      Actuals only exist for closed periods; future periods are forecasts.
+    severity: warn
+    pattern:
+      type: keywords
+      values:
+        - next year actuals
+        - future actuals
+        - predicted actuals
+        - next quarter revenue actuals
+    suggestion: >
+      Actuals are only available for closed periods. For future periods,
+      use the 'Forecast' or 'Budget' metrics instead.
+    overridableBy: []
+
+  # ── Data Quality ──────────────────────────────────────────────────────────
+
+  - id: no_uncertified_metric_in_board_report
+    name: Uncertified Metric Warning
+    description: >
+      Warns when a query references a metric that has not been certified
+      by the Finance team. Uncertified metrics may have incomplete definitions.
+    severity: log
+    pattern:
+      type: keywords
+      values:
+        - board report
+        - investor report
+        - board deck
+        - earnings
+    suggestion: >
+      Board and investor reporting should only use certified metrics.
+      Check the Glossary page to see which metrics are certified.
+    overridableBy: [cfo, finance_admin]
+
+  - id: no_unbounded_aggregation
+    name: No Unbounded Aggregation
+    description: >
+      Blocks queries that request an all-time sum without specifying a time window.
+      All-time aggregations can be misleading and computationally expensive.
+    severity: warn
+    pattern:
+      type: structural
+      rule: no_unbounded_aggregation
+    suggestion: >
+      Specify a time period for your query (e.g., "since company founding" is
+      ambiguous — use "FY2020 to FY2025" instead).
+    overridableBy: [finance_admin]

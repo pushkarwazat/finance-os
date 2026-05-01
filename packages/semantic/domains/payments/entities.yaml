@@ -1,0 +1,38 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_payment
+    domain: payments
+    description: >
+      Cash payment events. One row per payment received from a customer.
+      Covers ACH, wire, credit card, and check payments.
+      Links to fact_invoice via invoice_id.
+    owner: ar-team
+    labels:
+      tier: "1"
+      pii: "false"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_payment
+    displayName: Payments
+    primaryKey: [payment_id]
+    rlsTags: [finance, ar, treasury]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_refund
+    domain: payments
+    description: Refund events issued to customers. Negative cash flow items.
+    labels:
+      tier: "2"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_refund
+    displayName: Refunds
+    primaryKey: [refund_id]
+    rlsTags: [finance, ar]
+    queryable: true

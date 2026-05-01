@@ -1,0 +1,172 @@
+{
+  "domain": "subscriptions",
+  "version": "1.0.0",
+  "compiledAt": "2025-11-01T00:00:00.000Z",
+  "entities": [
+    {
+      "warehouse": "snowflake",
+      "schema": "finance",
+      "table": "fact_subscription",
+      "displayName": "Subscriptions",
+      "primaryKey": ["subscription_id", "period_key"],
+      "rlsTags": ["finance", "sales", "exec"],
+      "queryable": true
+    },
+    {
+      "warehouse": "snowflake",
+      "schema": "finance",
+      "table": "fact_mrr_movement",
+      "displayName": "MRR Movements",
+      "primaryKey": ["movement_id"],
+      "rlsTags": ["finance", "sales", "exec"],
+      "queryable": true
+    }
+  ],
+  "dimensions": [
+    {
+      "displayName": "Subscription Period",
+      "description": "Month in which this subscription record applies.",
+      "column": "period_start_date",
+      "dataType": "date",
+      "cardinality": "medium",
+      "filterable": true,
+      "isTimeDimension": true,
+      "timeGranularities": ["month", "quarter", "year", "fiscal_quarter", "fiscal_year"],
+      "synonyms": ["period", "subscription month", "month", "billing period"],
+      "hidden": false
+    },
+    {
+      "displayName": "Subscription Plan",
+      "description": "Product plan the customer is on.",
+      "column": "plan_name",
+      "dataType": "string",
+      "cardinality": "low",
+      "filterable": true,
+      "synonyms": ["plan", "tier", "product plan", "subscription tier", "package"],
+      "isTimeDimension": false,
+      "hidden": false
+    },
+    {
+      "displayName": "MRR Movement Type",
+      "description": "Category of MRR change.",
+      "column": "movement_type",
+      "dataType": "string",
+      "cardinality": "low",
+      "filterable": true,
+      "allowedValues": ["new", "expansion", "contraction", "churn", "reactivation"],
+      "synonyms": ["movement type", "MRR type", "change type"],
+      "isTimeDimension": false,
+      "hidden": false
+    }
+  ],
+  "measures": [
+    {
+      "displayName": "MRR",
+      "description": "Monthly Recurring Revenue.",
+      "column": "mrr_usd",
+      "aggregation": "sum",
+      "dataType": "currency",
+      "grain": "monthly",
+      "defaultFilters": ["status = 'active'"],
+      "nonAdditive": false,
+      "hidden": false
+    },
+    {
+      "displayName": "ARR",
+      "description": "Annual Recurring Revenue.",
+      "column": "arr_usd",
+      "aggregation": "sum",
+      "dataType": "currency",
+      "grain": "monthly",
+      "defaultFilters": ["status = 'active'"],
+      "nonAdditive": false,
+      "hidden": false
+    },
+    {
+      "displayName": "Churned MRR",
+      "description": "MRR lost from customers who cancelled.",
+      "column": "movement_amount_usd",
+      "aggregation": "sum",
+      "dataType": "currency",
+      "grain": "monthly",
+      "defaultFilters": ["movement_type = 'churn'"],
+      "nonAdditive": false,
+      "hidden": false
+    }
+  ],
+  "metrics": [
+    {
+      "displayName": "Annual Recurring Revenue",
+      "shortLabel": "ARR",
+      "description": "Total annualized value of all active subscription contracts at period end.",
+      "type": "simple",
+      "measure": "arr_amount",
+      "unit": "currency",
+      "currency": "USD",
+      "formatting": { "prefix": "$", "decimals": 0, "abbreviate": true },
+      "grain": "monthly",
+      "allowedDimensions": ["subscription_period", "subscription_plan", "subscription_billing_cycle", "customer_segment"],
+      "timeDimension": "subscription_period",
+      "thresholds": { "direction": "higher_is_better" },
+      "glossaryRef": "arr",
+      "synonyms": ["ARR", "annual recurring revenue", "annualized revenue"],
+      "tags": ["saas", "kpi", "recurring_revenue", "tier_1"],
+      "selfServe": true,
+      "public": false,
+      "certified": true,
+      "certifiedBy": "CFO Office",
+      "dependencies": []
+    },
+    {
+      "displayName": "Net New ARR",
+      "shortLabel": "Net New ARR",
+      "description": "Change in ARR during the period across all movement types.",
+      "type": "derived",
+      "formula": "(new_mrr + expansion_mrr + reactivation_mrr - contraction_mrr - churned_mrr) * 12",
+      "dependencies": ["arr", "mrr"],
+      "unit": "currency",
+      "currency": "USD",
+      "formatting": { "prefix": "$", "decimals": 0, "abbreviate": true },
+      "grain": "monthly",
+      "allowedDimensions": ["subscription_period", "subscription_plan", "mrr_movement_type", "customer_segment"],
+      "timeDimension": "subscription_period",
+      "thresholds": { "direction": "higher_is_better" },
+      "glossaryRef": "net_new_arr",
+      "synonyms": ["net new ARR", "ARR growth", "new ARR"],
+      "tags": ["saas", "kpi", "growth", "tier_1"],
+      "selfServe": true,
+      "public": false,
+      "certified": true,
+      "certifiedBy": "CFO Office"
+    }
+  ],
+  "joins": [
+    {
+      "description": "Join subscription records to MRR movement events for waterfall analysis.",
+      "left": { "entity": "fact_subscription", "key": "subscription_id" },
+      "right": { "entity": "fact_mrr_movement", "key": "subscription_id" },
+      "type": "left",
+      "symmetric": false,
+      "fanOut": true,
+      "additionalConditions": [],
+      "dependentMeasures": ["mrr_amount", "arr_amount", "new_mrr", "expansion_mrr", "churned_mrr"]
+    }
+  ],
+  "synonymMap": {
+    "arr": "arr",
+    "annual recurring revenue": "arr",
+    "annualized revenue": "arr",
+    "contracted arr": "arr",
+    "mrr": "mrr",
+    "monthly recurring revenue": "mrr",
+    "recurring revenue": "mrr",
+    "net new arr": "net_new_arr",
+    "arr growth": "net_new_arr",
+    "new arr": "net_new_arr",
+    "plan": "subscription_plan",
+    "tier": "subscription_plan",
+    "movement type": "mrr_movement_type",
+    "churn": "mrr_movement_type",
+    "expansion": "mrr_movement_type"
+  }
+}

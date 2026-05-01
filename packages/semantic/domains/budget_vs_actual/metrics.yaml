@@ -1,0 +1,98 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: budget_variance
+    slug: budget_variance
+    domain: budget_vs_actual
+    version: "2.0.0"
+    owner: fp-and-a
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Budget Variance
+    shortLabel: Variance
+    description: >
+      Actual result minus budgeted amount for the period.
+      Positive variance = favorable (above budget for revenue, below budget for expense).
+      Negative variance = unfavorable.
+      Used in the monthly business review and board reporting.
+    type: derived
+    formula: "actual_amount - budget_amount"
+    dependencies: [total_revenue, total_opex]
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - budget_period
+      - budget_version
+      - variance_type
+      - department
+      - opex_classification
+    timeDimension: budget_period
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: budget_variance
+    synonyms:
+      - budget variance
+      - variance
+      - actual vs budget
+      - vs budget
+      - budget miss
+      - budget beat
+      - vs plan
+      - plan variance
+    tags: [planning, variance, kpi, budget]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: FP&A Lead
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: budget_attainment
+    slug: budget_attainment
+    domain: budget_vs_actual
+    version: "1.0.0"
+    owner: fp-and-a
+    reviewCycle: monthly
+  spec:
+    displayName: Budget Attainment
+    shortLabel: Attainment
+    description: >
+      Actual / Budget as a percentage. 100% = on budget.
+      > 100% = favorable for revenue metrics, unfavorable for expense metrics.
+    type: ratio
+    numerator: budget_amount
+    denominator: budget_amount
+    formula: "actual_amount / budget_amount"
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - budget_period
+      - budget_version
+      - department
+    timeDimension: budget_period
+    thresholds:
+      direction: higher_is_better
+      warning: 0.90
+      critical: 0.80
+    synonyms:
+      - budget attainment
+      - attainment
+      - actual vs budget %
+      - budget achievement
+      - vs budget %
+    tags: [planning, variance, budget]
+    selfServe: true
+    public: false
+    certified: false

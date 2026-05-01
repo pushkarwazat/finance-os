@@ -1,0 +1,57 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: payment_date
+    entity: fact_payment
+    domain: payments
+  spec:
+    displayName: Payment Date
+    description: Date cash was received and applied.
+    column: payment_date
+    dataType: date
+    cardinality: high
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [day, week, month, quarter, year]
+    synonyms: [payment date, received date, cash date, collected date]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: payment_method
+    entity: fact_payment
+    domain: payments
+  spec:
+    displayName: Payment Method
+    description: How the payment was received.
+    column: payment_method
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [ACH, wire, credit_card, check, other]
+    synonyms: [method, payment type, payment method, how paid]
+    valueLabels:
+      ACH: ACH / EFT
+      wire: Wire Transfer
+      credit_card: Credit Card
+      check: Check
+      other: Other
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: payment_status
+    entity: fact_payment
+    domain: payments
+  spec:
+    displayName: Payment Status
+    description: Processing status of the payment.
+    column: status
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [cleared, pending, failed, returned]
+    synonyms: [status, payment status, cleared, failed]
+    hidden: false

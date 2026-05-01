@@ -1,0 +1,36 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: expenses
+  description: Aliases for expense and burn rate metrics.
+
+synonyms:
+  - canonical: burn_rate
+    kind: metric
+    domain: expenses
+    terms: [burn rate, burn, monthly burn, net burn, gross burn, cash burn, run rate expenses]
+
+  - canonical: total_opex
+    kind: metric
+    domain: expenses
+    terms: [opex, operating expenses, total opex, total expenses, spend, costs, operating cost]
+
+  - canonical: rd_ratio
+    kind: metric
+    domain: expenses
+    terms: [R&D ratio, R&D percentage, research and development ratio, R&D spend ratio]
+
+  - canonical: department
+    kind: dimension
+    domain: expenses
+    terms: [department, team, org, group, cost center, business unit]
+
+  - canonical: expense_category
+    kind: dimension
+    domain: expenses
+    terms: [category, expense type, spend category, headcount, marketing, infrastructure, T&E]
+
+  - canonical: opex_classification
+    kind: dimension
+    domain: expenses
+    terms: [classification, P&L line, opex class, R&D, S&M, G&A, functional area]

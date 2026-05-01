@@ -1,0 +1,41 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_budget
+    domain: budget_vs_actual
+    description: >
+      Approved annual/quarterly budget by GL account and cost center.
+      Budget amounts are spread monthly at the account level.
+      One row per month × account × cost_center combination.
+    owner: fp-and-a
+    labels:
+      tier: "1"
+      pii: "false"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_budget
+    displayName: Budget
+    primaryKey: [budget_id]
+    rlsTags: [finance, exec]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_forecast
+    domain: budget_vs_actual
+    description: >
+      Rolling forecast updated monthly. Each row is a forecast scenario
+      (base / upside / downside) for a future period.
+    owner: fp-and-a
+    labels:
+      tier: "1"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_forecast
+    displayName: Forecast
+    primaryKey: [forecast_id]
+    rlsTags: [finance, exec]
+    queryable: true

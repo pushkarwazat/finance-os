@@ -1,0 +1,37 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: expense_to_cost_center
+    domain: expenses
+  spec:
+    description: Join expense GL lines to organizational cost center hierarchy.
+    left:
+      entity: fact_expense
+      key: cost_center_id
+    right:
+      entity: dim_cost_center
+      key: cost_center_id
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: []
+    dependentMeasures: [total_opex, headcount_expense]
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: expense_to_gl_account
+    domain: expenses
+  spec:
+    description: Join expense GL lines to account dimension for opex classification.
+    left:
+      entity: fact_expense
+      key: account_id
+    right:
+      entity: dim_gl_account
+      key: account_id
+    type: left
+    symmetric: false
+    fanOut: false
+    additionalConditions: []
+    dependentMeasures: [rd_expense, sm_expense, ga_expense]

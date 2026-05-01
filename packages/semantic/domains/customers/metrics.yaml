@@ -1,0 +1,132 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: active_customers
+    slug: active_customers
+    domain: customers
+    version: "1.2.0"
+    owner: revenue-ops
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Active Customers
+    shortLabel: Active Custs
+    description: >
+      Count of distinct customer accounts with status = 'active' at the end
+      of the reporting period. Customers in trial are excluded.
+    type: simple
+    measure: active_customer_count
+    unit: count
+    formatting:
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - customer_segment
+      - customer_industry
+      - customer_cohort_month
+      - customer_geo
+    timeDimension: customer_cohort_month
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: active_customers
+    synonyms:
+      - active customers
+      - active accounts
+      - live customers
+      - customers
+    tags: [customers, kpi, retention]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Revenue Ops
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: customer_churn_rate
+    slug: customer_churn_rate
+    domain: customers
+    version: "1.1.0"
+    owner: revenue-ops
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Customer Churn Rate
+    shortLabel: Churn %
+    description: >
+      Churned customers / Beginning-of-period active customers.
+      Measures the percentage of the customer base lost in a period.
+      Lower is better. Best-in-class SaaS: < 1% monthly (< 12% annual).
+    type: ratio
+    numerator: churned_customer_count
+    denominator: active_customer_count
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - customer_segment
+      - customer_industry
+      - customer_geo
+    timeDimension: customer_cohort_month
+    thresholds:
+      direction: lower_is_better
+      warning: 0.02
+      critical: 0.05
+    glossaryRef: churn_rate
+    synonyms:
+      - churn rate
+      - churn
+      - customer churn
+      - logo churn
+      - attrition rate
+    tags: [customers, kpi, churn, retention]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: Revenue Ops
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: new_customers
+    slug: new_customers
+    domain: customers
+    version: "1.0.0"
+    owner: revenue-ops
+    reviewCycle: monthly
+  spec:
+    displayName: New Customers
+    shortLabel: New Custs
+    description: >
+      Customers who became active for the first time within the reporting period.
+      Does not include reactivations.
+    type: simple
+    measure: new_customer_count
+    unit: count
+    formatting:
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - customer_segment
+      - customer_industry
+      - customer_geo
+    timeDimension: customer_cohort_month
+    thresholds:
+      direction: higher_is_better
+    synonyms:
+      - new customers
+      - new accounts
+      - new logos
+      - new wins
+      - new business
+    tags: [customers, acquisition]
+    selfServe: true
+    public: false
+    certified: false

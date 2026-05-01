@@ -1,0 +1,101 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: mrr_amount
+    entity: fact_subscription
+    domain: subscriptions
+  spec:
+    displayName: MRR
+    description: Monthly Recurring Revenue — annualized monthly subscription value / 12.
+    column: mrr_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status = 'active'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: arr_amount
+    entity: fact_subscription
+    domain: subscriptions
+  spec:
+    displayName: ARR
+    description: Annual Recurring Revenue — MRR × 12. Point-in-time snapshot at period end.
+    column: arr_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status = 'active'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: new_mrr
+    entity: fact_mrr_movement
+    domain: subscriptions
+  spec:
+    displayName: New MRR
+    description: MRR from brand-new subscriptions that started this month.
+    column: movement_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["movement_type = 'new'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: expansion_mrr
+    entity: fact_mrr_movement
+    domain: subscriptions
+  spec:
+    displayName: Expansion MRR
+    description: MRR added from existing customers upgrading or purchasing add-ons.
+    column: movement_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["movement_type = 'expansion'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: churned_mrr
+    entity: fact_mrr_movement
+    domain: subscriptions
+  spec:
+    displayName: Churned MRR
+    description: MRR lost from customers who cancelled subscriptions this month.
+    column: movement_amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["movement_type = 'churn'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: subscription_count
+    entity: fact_subscription
+    domain: subscriptions
+  spec:
+    displayName: Active Subscriptions
+    description: Count of active subscriptions at period end.
+    column: subscription_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: ["status = 'active'"]
+    nonAdditive: true
+    hidden: false

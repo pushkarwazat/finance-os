@@ -1,0 +1,40 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_collection_action
+    domain: collections
+    description: >
+      Collection activity log. One row per collection action taken
+      (call, email, escalation, legal notice) on an overdue invoice.
+      Used to measure collector effectiveness and days-to-cure.
+    owner: ar-team
+    labels:
+      tier: "2"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_collection_action
+    displayName: Collection Actions
+    primaryKey: [action_id]
+    rlsTags: [finance, ar]
+    queryable: true
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Entity
+  metadata:
+    name: fact_aging_bucket
+    domain: collections
+    description: >
+      AR aging snapshot. One row per customer × aging bucket (current, 1-30, 31-60, 61-90, 90+).
+      Snapshot taken at the end of each month.
+    owner: ar-team
+    labels:
+      tier: "1"
+  spec:
+    warehouse: snowflake
+    schema: finance
+    table: fact_ar_aging
+    displayName: AR Aging
+    primaryKey: [customer_id, aging_bucket, snapshot_date]
+    rlsTags: [finance, ar, exec]
+    queryable: true

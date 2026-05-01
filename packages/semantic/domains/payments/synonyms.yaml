@@ -1,0 +1,26 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: payments
+  description: Aliases for payments and cash collection metrics.
+
+synonyms:
+  - canonical: cash_collected
+    kind: metric
+    domain: payments
+    terms: [cash collected, cash receipts, payments received, cash in, collections]
+
+  - canonical: collections_rate
+    kind: metric
+    domain: payments
+    terms: [collections rate, collection rate, collection efficiency, payment rate]
+
+  - canonical: payment_method
+    kind: dimension
+    domain: payments
+    terms: [payment method, method, how paid, payment type, ACH, wire, check, credit card]
+
+  - canonical: payment_date
+    kind: dimension
+    domain: payments
+    terms: [payment date, received date, cash date, collected date]

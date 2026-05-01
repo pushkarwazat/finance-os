@@ -1,0 +1,31 @@
+apiVersion: semantics.financeos.io/v1
+kind: SynonymMap
+metadata:
+  domain: customers
+  description: Aliases for customer metrics and dimensions.
+
+synonyms:
+  - canonical: active_customers
+    kind: metric
+    domain: customers
+    terms: [active customers, active accounts, live customers, customer count, customers]
+
+  - canonical: customer_churn_rate
+    kind: metric
+    domain: customers
+    terms: [churn, churn rate, customer churn, logo churn, attrition, attrition rate]
+
+  - canonical: new_customers
+    kind: metric
+    domain: customers
+    terms: [new customers, new logos, new accounts, new business, new wins, new bookings]
+
+  - canonical: customer_segment
+    kind: dimension
+    domain: customers
+    terms: [segment, tier, customer size, smb, mid-market, enterprise, market segment]
+
+  - canonical: customer_industry
+    kind: dimension
+    domain: customers
+    terms: [industry, vertical, sector, customer industry]

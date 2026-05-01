@@ -1,0 +1,141 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: arr
+    slug: arr
+    domain: subscriptions
+    version: "2.0.0"
+    owner: revenue-ops
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Annual Recurring Revenue
+    shortLabel: ARR
+    description: >
+      Total annualized value of all active subscription contracts at period end.
+      Excludes one-time fees, professional services, and usage-based revenue.
+      The primary growth metric for SaaS businesses.
+    type: simple
+    measure: arr_amount
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - subscription_period
+      - subscription_plan
+      - subscription_billing_cycle
+      - customer_segment
+    timeDimension: subscription_period
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: arr
+    synonyms:
+      - ARR
+      - annual recurring revenue
+      - annualized revenue
+      - contracted ARR
+    tags: [saas, kpi, recurring_revenue, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: mrr
+    slug: mrr
+    domain: subscriptions
+    version: "2.0.0"
+    owner: revenue-ops
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Monthly Recurring Revenue
+    shortLabel: MRR
+    description: >
+      Total monthly subscription value of all active contracts.
+      MRR × 12 = ARR. Used for month-over-month growth tracking and
+      waterfall analysis (new, expansion, contraction, churn).
+    type: simple
+    measure: mrr_amount
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - subscription_period
+      - subscription_plan
+      - subscription_billing_cycle
+      - mrr_movement_type
+    timeDimension: subscription_period
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: mrr
+    synonyms:
+      - MRR
+      - monthly recurring revenue
+      - monthly revenue
+      - recurring revenue
+    tags: [saas, kpi, recurring_revenue, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: net_new_arr
+    slug: net_new_arr
+    domain: subscriptions
+    version: "1.2.0"
+    owner: revenue-ops
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Net New ARR
+    shortLabel: Net New ARR
+    description: >
+      Change in ARR during the period: New ARR + Expansion ARR - Contraction ARR - Churned ARR.
+      Positive = growing ARR base. The primary indicator of business momentum.
+    type: derived
+    formula: "(new_mrr + expansion_mrr - contraction_mrr - churned_mrr) * 12"
+    dependencies: [arr, mrr]
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - subscription_period
+      - subscription_plan
+      - mrr_movement_type
+      - customer_segment
+    timeDimension: subscription_period
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: net_new_arr
+    synonyms:
+      - net new ARR
+      - ARR growth
+      - new ARR
+      - MRR growth
+      - net new MRR
+    tags: [saas, kpi, growth, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office

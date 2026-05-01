@@ -1,0 +1,18 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: aging_to_collection_actions
+    domain: collections
+  spec:
+    description: Join aging snapshot to collection actions for effectiveness analysis.
+    left:
+      entity: fact_aging_bucket
+      key: customer_id
+    right:
+      entity: fact_collection_action
+      key: customer_id
+    type: left
+    symmetric: false
+    fanOut: true
+    additionalConditions: []
+    dependentMeasures: [overdue_aging_amount]

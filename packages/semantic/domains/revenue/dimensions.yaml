@@ -1,0 +1,142 @@
+# ── Revenue Domain — Dimensions ───────────────────────────────────────────────
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: revenue_date
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Revenue Date
+    description: Date on which revenue was recognized per ASC 606.
+    column: recognized_date
+    dataType: date
+    cardinality: high
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [day, week, month, quarter, year, fiscal_quarter, fiscal_year]
+    synonyms: [date, period, when, recognized date, booking date]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: fiscal_period
+    entity: dim_period
+    domain: revenue
+  spec:
+    displayName: Fiscal Period
+    description: "Fiscal quarter label, e.g. 'Q4 FY2025'."
+    column: fiscal_period_label
+    dataType: string
+    cardinality: low
+    filterable: true
+    isTimeDimension: false
+    synonyms: [quarter, period, fiscal quarter, reporting period]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: fiscal_year
+    entity: dim_period
+    domain: revenue
+  spec:
+    displayName: Fiscal Year
+    description: Fiscal year integer (e.g. 2025).
+    column: fiscal_year
+    dataType: integer
+    cardinality: low
+    filterable: true
+    isTimeDimension: false
+    synonyms: [year, fy, fiscal year, FY]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: revenue_type
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Revenue Type
+    description: Classification of revenue stream.
+    column: revenue_type
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [subscription, professional_services, usage, one_time, support]
+    synonyms: [type, stream, category, revenue category]
+    valueLabels:
+      subscription: Subscription
+      professional_services: Professional Services
+      usage: Usage-Based
+      one_time: One-Time
+      support: Support & Maintenance
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: customer_segment
+    entity: dim_customer_segment
+    domain: revenue
+  spec:
+    displayName: Customer Segment
+    description: "Segment tier: SMB, Mid-Market, or Enterprise."
+    column: segment_name
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [SMB, Mid-Market, Enterprise]
+    synonyms: [segment, tier, market segment, customer type, size]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: product_line
+    entity: dim_product
+    domain: revenue
+  spec:
+    displayName: Product Line
+    description: Top-level product family grouping.
+    column: product_line
+    dataType: string
+    cardinality: low
+    filterable: true
+    synonyms: [product, product family, line, offering]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: geo_region
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Region
+    description: Geographic sales region.
+    column: geo_region
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [Americas, EMEA, APAC]
+    synonyms: [region, geography, geo, territory, area]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: currency_code
+    entity: fact_revenue
+    domain: revenue
+  spec:
+    displayName: Currency
+    description: ISO 4217 currency code of the transaction.
+    column: currency_code
+    dataType: string
+    cardinality: low
+    filterable: true
+    synonyms: [currency, fx, denomination]
+    hidden: false

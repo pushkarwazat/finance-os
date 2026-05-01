@@ -1,0 +1,67 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: customer_count
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Customer Count
+    description: Count of distinct customer accounts.
+    column: customer_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: []
+    nonAdditive: true
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: active_customer_count
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Active Customer Count
+    description: Count of customers with status = 'active' at period end.
+    column: customer_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: ["status = 'active'"]
+    nonAdditive: true
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: new_customer_count
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: New Customer Count
+    description: Customers whose first active date falls within the reporting period.
+    column: customer_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: ["DATE_TRUNC('month', first_active_date) = reporting_month"]
+    nonAdditive: true
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: churned_customer_count
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Churned Customer Count
+    description: Customers whose status changed to 'churned' within the reporting period.
+    column: customer_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: ["status = 'churned'", "DATE_TRUNC('month', churn_date) = reporting_month"]
+    nonAdditive: true
+    hidden: false

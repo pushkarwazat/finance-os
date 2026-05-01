@@ -1,0 +1,18 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Join
+  metadata:
+    name: subscriptions_to_mrr_movements
+    domain: subscriptions
+  spec:
+    description: Join subscription records to MRR movement events for waterfall analysis.
+    left:
+      entity: fact_subscription
+      key: subscription_id
+    right:
+      entity: fact_mrr_movement
+      key: subscription_id
+    type: left
+    symmetric: false
+    fanOut: true
+    additionalConditions: []
+    dependentMeasures: [mrr_amount, arr_amount, new_mrr, expansion_mrr, churned_mrr]

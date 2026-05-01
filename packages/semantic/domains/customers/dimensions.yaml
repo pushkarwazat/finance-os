@@ -1,0 +1,89 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: customer_status
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Customer Status
+    description: Lifecycle status of the customer account.
+    column: status
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [active, churned, at_risk, new, trial]
+    synonyms: [status, health, account status, churn status]
+    valueLabels:
+      active: Active
+      churned: Churned
+      at_risk: At Risk
+      new: New Customer
+      trial: Trial
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: customer_segment
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Segment
+    description: "Customer segment: SMB, Mid-Market, or Enterprise."
+    column: segment
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [SMB, Mid-Market, Enterprise]
+    synonyms: [segment, tier, size, customer size]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: customer_industry
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Industry
+    description: Primary industry vertical of the customer.
+    column: industry
+    dataType: string
+    cardinality: medium
+    filterable: true
+    synonyms: [industry, vertical, sector]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: customer_cohort_month
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Cohort Month
+    description: Calendar month the customer first went live (used for cohort analysis).
+    column: first_active_month
+    dataType: date
+    cardinality: medium
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [month, quarter, year]
+    synonyms: [cohort, cohort month, acquisition month, start date]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: customer_geo
+    entity: dim_customer
+    domain: customers
+  spec:
+    displayName: Customer Country
+    description: Billing country of the customer.
+    column: billing_country
+    dataType: string
+    cardinality: medium
+    filterable: true
+    synonyms: [country, geo, location, region, geography]
+    hidden: false

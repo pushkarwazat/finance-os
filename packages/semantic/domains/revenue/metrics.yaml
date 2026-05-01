@@ -1,0 +1,250 @@
+# ── Revenue Domain — Metrics ──────────────────────────────────────────────────
+# Metrics are business KPIs derived from measures. They are what analysts query.
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: total_revenue
+    slug: total_revenue
+    domain: revenue
+    version: "2.1.0"
+    owner: finance-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+      certified: "true"
+  spec:
+    displayName: Total Revenue
+    shortLabel: Revenue
+    description: >
+      Total gross revenue recognized in the period per ASC 606. Includes
+      subscription, professional services, usage, and support revenue.
+      Excludes inter-company eliminations.
+    type: simple
+    measure: gross_revenue_amount
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - revenue_date
+      - fiscal_period
+      - fiscal_year
+      - revenue_type
+      - customer_segment
+      - product_line
+      - geo_region
+    timeDimension: revenue_date
+    thresholds:
+      direction: higher_is_better
+      warning: 90000000
+      critical: 80000000
+    glossaryRef: total_revenue
+    synonyms:
+      - revenue
+      - top line
+      - gross revenue
+      - total recognized revenue
+      - bookings  # Note: bookings ≠ revenue, but common user confusion
+    tags: [income_statement, kpi, top_line, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: net_revenue
+    slug: net_revenue
+    domain: revenue
+    version: "1.3.0"
+    owner: finance-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Net Revenue
+    shortLabel: Net Rev
+    description: >
+      Revenue after all deductions: discounts, credits, and customer returns.
+      Net revenue is the basis for gross margin calculation.
+    type: simple
+    measure: net_revenue_amount
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - revenue_date
+      - fiscal_period
+      - fiscal_year
+      - revenue_type
+      - customer_segment
+      - product_line
+      - geo_region
+    timeDimension: revenue_date
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: net_revenue
+    synonyms:
+      - net revenue
+      - revenue after discounts
+      - adjusted revenue
+    tags: [income_statement, kpi, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: gross_margin
+    slug: gross_margin
+    domain: revenue
+    version: "1.5.0"
+    owner: finance-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Gross Margin
+    shortLabel: GM%
+    description: >
+      (Net Revenue - COGS) / Net Revenue. Measures how efficiently the company
+      converts revenue into gross profit after direct costs.
+      Target: ≥ 70% for SaaS businesses.
+    type: ratio
+    numerator: net_revenue_amount     # Planner resolves: (net_revenue_amount - cogs_amount) / net_revenue_amount
+    denominator: net_revenue_amount
+    formula: "(net_revenue_amount - cogs_amount) / net_revenue_amount"
+    dependencies: [net_revenue, cogs]
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - fiscal_period
+      - fiscal_year
+      - product_line
+      - customer_segment
+    timeDimension: revenue_date
+    thresholds:
+      direction: higher_is_better
+      warning: 0.65
+      critical: 0.60
+    glossaryRef: gross_margin
+    synonyms:
+      - gross margin
+      - GM
+      - gross profit margin
+      - gross profit %
+    tags: [income_statement, kpi, margin, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: net_revenue_retention
+    slug: net_revenue_retention
+    domain: revenue
+    version: "1.0.0"
+    owner: finance-team
+    reviewCycle: monthly
+    labels:
+      tier: "1"
+  spec:
+    displayName: Net Revenue Retention
+    shortLabel: NRR
+    description: >
+      (Beginning ARR + Expansion - Contraction - Churn) / Beginning ARR.
+      Measures how well the company retains and grows revenue from existing customers.
+      NRR > 100% means the cohort is growing despite any churn.
+    type: derived
+    formula: "(beginning_arr + expansion_arr - contraction_arr - churned_arr) / beginning_arr"
+    dependencies: [arr]
+    unit: percentage
+    formatting:
+      suffix: "%"
+      decimals: 1
+      abbreviate: false
+    grain: monthly
+    allowedDimensions:
+      - fiscal_period
+      - fiscal_year
+      - customer_segment
+      - product_line
+    timeDimension: revenue_date
+    thresholds:
+      direction: higher_is_better
+      warning: 1.00
+      critical: 0.90
+    glossaryRef: net_revenue_retention
+    synonyms:
+      - NRR
+      - net dollar retention
+      - NDR
+      - net retention rate
+      - dollar-based net retention
+    tags: [saas, kpi, retention, tier_1]
+    selfServe: true
+    public: false
+    certified: true
+    certifiedBy: CFO Office
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Metric
+  metadata:
+    name: budget_variance_revenue
+    slug: budget_variance_revenue
+    domain: revenue
+    version: "1.0.0"
+    owner: finance-team
+    reviewCycle: monthly
+  spec:
+    displayName: Revenue vs Budget
+    shortLabel: Rev Variance
+    description: >
+      Actual total revenue minus budgeted revenue for the period.
+      Positive = favorable (above budget). Negative = unfavorable (below budget).
+    type: derived
+    formula: "total_revenue - budget_revenue"
+    dependencies: [total_revenue]
+    unit: currency
+    currency: USD
+    formatting:
+      prefix: "$"
+      decimals: 0
+      abbreviate: true
+    grain: monthly
+    allowedDimensions:
+      - fiscal_period
+      - fiscal_year
+      - revenue_type
+      - customer_segment
+    timeDimension: revenue_date
+    thresholds:
+      direction: higher_is_better
+    glossaryRef: budget_variance
+    synonyms:
+      - revenue variance
+      - revenue vs budget
+      - budget miss
+      - budget beat
+      - vs plan
+    tags: [planning, variance, kpi]
+    selfServe: true
+    public: false
+    certified: false

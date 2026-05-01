@@ -1,0 +1,73 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: subscription_period
+    entity: fact_subscription
+    domain: subscriptions
+  spec:
+    displayName: Subscription Period
+    description: Month in which this subscription record applies.
+    column: period_start_date
+    dataType: date
+    cardinality: medium
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [month, quarter, year, fiscal_quarter, fiscal_year]
+    synonyms: [period, subscription month, month, billing period]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: subscription_plan
+    entity: fact_subscription
+    domain: subscriptions
+  spec:
+    displayName: Subscription Plan
+    description: "Product plan the customer is on (Starter, Growth, Enterprise)."
+    column: plan_name
+    dataType: string
+    cardinality: low
+    filterable: true
+    synonyms: [plan, tier, product plan, subscription tier, package]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: subscription_billing_cycle
+    entity: fact_subscription
+    domain: subscriptions
+  spec:
+    displayName: Billing Cycle
+    description: Whether the subscription is billed monthly or annually.
+    column: billing_cycle
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [monthly, annual]
+    synonyms: [billing cycle, payment frequency, annual, monthly, billing frequency]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: mrr_movement_type
+    entity: fact_mrr_movement
+    domain: subscriptions
+  spec:
+    displayName: MRR Movement Type
+    description: "Category of MRR change: new, expansion, contraction, churn, reactivation."
+    column: movement_type
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [new, expansion, contraction, churn, reactivation]
+    synonyms: [movement type, MRR type, change type, new MRR, expansion, contraction, churn]
+    valueLabels:
+      new: New MRR
+      expansion: Expansion MRR
+      contraction: Contraction MRR
+      churn: Churned MRR
+      reactivation: Reactivation MRR
+    hidden: false

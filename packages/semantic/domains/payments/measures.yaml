@@ -1,0 +1,67 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: cash_collected
+    entity: fact_payment
+    domain: payments
+  spec:
+    displayName: Cash Collected
+    description: Total cash received from customers in the period (cleared payments only).
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status = 'cleared'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: payment_count
+    entity: fact_payment
+    domain: payments
+  spec:
+    displayName: Payment Count
+    description: Number of distinct payment transactions received.
+    column: payment_id
+    aggregation: count_distinct
+    dataType: integer
+    grain: monthly
+    defaultFilters: ["status != 'failed'"]
+    nonAdditive: true
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: failed_payment_amount
+    entity: fact_payment
+    domain: payments
+  spec:
+    displayName: Failed Payment Amount
+    description: Total value of failed payment attempts requiring follow-up.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: ["status = 'failed'"]
+    nonAdditive: false
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Measure
+  metadata:
+    name: refund_amount
+    entity: fact_refund
+    domain: payments
+  spec:
+    displayName: Refund Amount
+    description: Total refunds issued to customers in the period.
+    column: amount_usd
+    aggregation: sum
+    dataType: currency
+    grain: monthly
+    defaultFilters: []
+    nonAdditive: false
+    hidden: false

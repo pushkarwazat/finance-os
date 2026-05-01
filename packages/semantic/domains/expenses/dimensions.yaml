@@ -1,0 +1,105 @@
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: expense_date
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: Expense Date
+    description: GL posting date of the expense transaction.
+    column: gl_date
+    dataType: date
+    cardinality: high
+    filterable: true
+    isTimeDimension: true
+    timeGranularities: [day, week, month, quarter, year, fiscal_quarter, fiscal_year]
+    synonyms: [expense date, posting date, GL date, transaction date]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: expense_category
+    entity: fact_expense
+    domain: expenses
+  spec:
+    displayName: Expense Category
+    description: High-level category of operating expense.
+    column: expense_category
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues:
+      - headcount
+      - marketing
+      - infrastructure
+      - travel_and_entertainment
+      - professional_services
+      - software_and_subscriptions
+      - facilities
+      - other
+    synonyms: [category, expense type, spend category, type]
+    valueLabels:
+      headcount: Headcount & Benefits
+      marketing: Sales & Marketing
+      infrastructure: Infrastructure & Hosting
+      travel_and_entertainment: T&E
+      professional_services: Professional Services
+      software_and_subscriptions: Software & SaaS
+      facilities: Facilities
+      other: Other OpEx
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: department
+    entity: dim_cost_center
+    domain: expenses
+  spec:
+    displayName: Department
+    description: Organizational department that incurred the expense.
+    column: department_name
+    dataType: string
+    cardinality: medium
+    filterable: true
+    synonyms: [department, team, org, group, cost center]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: gl_account_code
+    entity: dim_gl_account
+    domain: expenses
+  spec:
+    displayName: GL Account
+    description: General ledger account number and description.
+    column: account_code
+    dataType: string
+    cardinality: medium
+    filterable: true
+    synonyms: [account, GL account, account code, ledger account]
+    hidden: false
+
+- apiVersion: semantics.financeos.io/v1
+  kind: Dimension
+  metadata:
+    name: opex_classification
+    entity: dim_gl_account
+    domain: expenses
+  spec:
+    displayName: OpEx Classification
+    description: "Functional P&L classification: R&D, S&M, G&A."
+    column: opex_class
+    dataType: string
+    cardinality: low
+    filterable: true
+    allowedValues: [R&D, S&M, G&A, COGS]
+    synonyms: [classification, P&L line, opex class, functional area]
+    valueLabels:
+      R&D: Research & Development
+      "S&M": Sales & Marketing
+      G&A: General & Administrative
+      COGS: Cost of Revenue
+    hidden: false
