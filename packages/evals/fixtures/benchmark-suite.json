@@ -1,0 +1,67 @@
+{
+  "id": "00000000-eval-0001-0000-000000000001",
+  "name": "FinanceOS Core QA Suite",
+  "description": "Foundational benchmark covering metric analysis, variance explanation, and document QA across core finance domains.",
+  "version": "1.0.0",
+  "metrics": [
+    "accuracy",
+    "faithfulness",
+    "relevance",
+    "hallucination_rate",
+    "citation_precision",
+    "latency_p95"
+  ],
+  "createdAt": "2025-01-15T00:00:00Z",
+  "cases": [
+    {
+      "id": "00000000-eval-case-0001-000000000001",
+      "name": "Gross Margin Definition",
+      "domain": "metrics",
+      "difficulty": "easy",
+      "input": "What is the current gross margin and how is it calculated?",
+      "expectedOutput": "Gross margin is (Revenue - COGS) / Revenue, currently 67.3% for Q4 FY2025.",
+      "referenceDocumentIds": [],
+      "tags": ["metric", "definition", "easy"]
+    },
+    {
+      "id": "00000000-eval-case-0002-000000000001",
+      "name": "Revenue Variance Q4 Explanation",
+      "domain": "variance",
+      "difficulty": "medium",
+      "input": "Why did revenue come in $4.2M below budget in Q4?",
+      "expectedOutput": "Revenue missed budget by $4.2M due to delayed enterprise contract renewals (-$3.1M) and lower professional services volume (-$1.1M).",
+      "referenceDocumentIds": [],
+      "tags": ["variance", "revenue", "medium"]
+    },
+    {
+      "id": "00000000-eval-case-0003-000000000001",
+      "name": "EBITDA Bridge Walk",
+      "domain": "variance",
+      "difficulty": "hard",
+      "input": "Walk me through the EBITDA bridge from Q3 to Q4.",
+      "expectedOutput": "EBITDA declined from $18.2M to $15.7M: revenue shortfall (-$4.2M), partially offset by lower headcount costs (+$1.3M) and reduced travel (+$0.4M).",
+      "referenceDocumentIds": [],
+      "tags": ["ebitda", "bridge", "hard"]
+    },
+    {
+      "id": "00000000-eval-case-0004-000000000001",
+      "name": "Audit Report Citation",
+      "domain": "documents",
+      "difficulty": "medium",
+      "input": "What material weaknesses were identified in the external audit?",
+      "expectedOutput": "No material weaknesses were identified. One significant deficiency related to revenue recognition timing controls was noted.",
+      "referenceDocumentIds": ["00000000-doc-0001-0000-000000000001"],
+      "tags": ["audit", "document_qa", "medium"]
+    },
+    {
+      "id": "00000000-eval-case-0005-000000000001",
+      "name": "Close Checklist Status",
+      "domain": "close",
+      "difficulty": "easy",
+      "input": "Which close tasks are still open for Q4?",
+      "expectedOutput": "Three tasks remain open: Intercompany reconciliation (in progress), Board deck finalization (review), and Tax provision calculation (pending).",
+      "referenceDocumentIds": [],
+      "tags": ["close", "status", "easy"]
+    }
+  ]
+}

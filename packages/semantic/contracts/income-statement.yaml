@@ -1,0 +1,100 @@
+apiVersion: financeos.io/v1
+kind: DataContract
+metadata:
+  name: income-statement
+  namespace: finance
+  version: "1.0.0"
+  owner: finance-team
+  status: active
+spec:
+  description: >
+    Normalized monthly income statement facts. All monetary amounts are in
+    USD. Source system is NetSuite ERP; data lands in Snowflake after
+    nightly ETL.
+  schema:
+    fields:
+      - name: period_key
+        type: string
+        nullable: false
+        description: "Fiscal period identifier (e.g. 2025-Q1)"
+        constraints:
+          pattern: "^\\d{4}-(Q[1-4]|FY|MTD|YTD)$"
+        classification: internal
+      - name: fiscal_year
+        type: integer
+        nullable: false
+        description: Fiscal year number (e.g. 2025)
+        constraints:
+          minimum: 2000
+          maximum: 2100
+        classification: internal
+      - name: account_code
+        type: string
+        nullable: false
+        description: Chart of accounts code
+        classification: internal
+      - name: account_name
+        type: string
+        nullable: false
+        classification: internal
+      - name: category
+        type: string
+        nullable: false
+        constraints:
+          enum: [revenue, cogs, opex, interest, tax, depreciation, amortization]
+        classification: internal
+      - name: amount_usd
+        type: number
+        nullable: false
+        description: Amount in USD
+        classification: confidential
+      - name: budget_amount_usd
+        type: number
+        nullable: true
+        classification: confidential
+      - name: prior_year_amount_usd
+        type: number
+        nullable: true
+        classification: confidential
+      - name: currency_code
+        type: string
+        nullable: false
+        constraints:
+          enum: [USD, EUR, GBP, JPY, CAD]
+        classification: internal
+      - name: fx_rate
+        type: number
+        nullable: false
+        classification: internal
+      - name: source_system
+        type: string
+        nullable: false
+        classification: internal
+      - name: loaded_at
+        type: datetime
+        nullable: false
+        classification: internal
+    primaryKey:
+      - period_key
+      - account_code
+    partitionBy:
+      - fiscal_year
+    sortBy:
+      - period_key
+      - account_code
+  sla:
+    freshness: "T+1 business day by 08:00 ET"
+    completeness: 0.9995
+    accuracy: 0.999
+  sources:
+    - system: NetSuite ERP
+      table: ns.transaction_lines
+      grain: monthly
+      transformScript: etl/income_statement_transform.sql
+  consumers:
+    - team: Finance
+      use: MIS reporting and variance analysis
+    - team: Investor Relations
+      use: Earnings materials
+    - team: FinanceOS Platform
+      use: Metric computation and AI analysis

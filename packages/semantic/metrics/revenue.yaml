@@ -1,0 +1,80 @@
+apiVersion: financeos.io/v1
+kind: SemanticMetric
+metadata:
+  name: total-revenue
+  slug: total_revenue
+  namespace: finance
+  labels:
+    domain: income_statement
+    tier: "1"
+  annotations:
+    owner: "finance-team@acme.com"
+spec:
+  displayName: Total Revenue
+  description: >
+    Gross revenue recognized in the period before any deductions, discounts,
+    or returns. Represents the top line of the income statement.
+  category: revenue
+  unit: currency
+  formula: "SUM(net_sales) + SUM(service_revenue)"
+  dependencies:
+    - net_sales
+    - service_revenue
+  dataSource:
+    warehouse: snowflake
+    table: finance.fact_revenue
+    column: gross_amount
+    grain: monthly
+  aggregation: sum
+  thresholds:
+    direction: higher_is_better
+    warning: 90000000
+    critical: 80000000
+  formatting:
+    prefix: "$"
+    decimals: 0
+    abbreviate: true
+  tags:
+    - income_statement
+    - top_line
+    - kpi
+  owner: finance-team
+  reviewCycle: monthly
+---
+apiVersion: financeos.io/v1
+kind: SemanticMetric
+metadata:
+  name: arr
+  slug: arr
+  namespace: finance
+  labels:
+    domain: saas
+    tier: "1"
+spec:
+  displayName: Annual Recurring Revenue
+  description: >
+    Normalized, annualized value of all active subscriptions. Excludes
+    one-time and professional services revenue.
+  category: revenue
+  unit: currency
+  formula: "SUM(monthly_recurring_revenue) * 12"
+  dependencies:
+    - mrr
+  dataSource:
+    warehouse: snowflake
+    table: finance.fact_subscriptions
+    column: mrr
+    grain: monthly
+  aggregation: last
+  thresholds:
+    direction: higher_is_better
+  formatting:
+    prefix: "$"
+    decimals: 0
+    abbreviate: true
+  tags:
+    - saas
+    - recurring_revenue
+    - kpi
+  owner: finance-team
+  reviewCycle: monthly

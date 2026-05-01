@@ -1,0 +1,81 @@
+apiVersion: financeos.io/v1
+kind: SemanticMetric
+metadata:
+  name: gross-margin
+  slug: gross_margin
+  namespace: finance
+  labels:
+    domain: income_statement
+    tier: "1"
+spec:
+  displayName: Gross Margin
+  description: >
+    Percentage of revenue remaining after subtracting the cost of goods sold.
+    Core indicator of product-level profitability.
+  category: margin
+  unit: percentage
+  formula: "(total_revenue - cogs) / total_revenue"
+  dependencies:
+    - total_revenue
+    - cogs
+  dataSource:
+    warehouse: snowflake
+    table: finance.fact_income_statement
+    column: gross_profit
+    grain: monthly
+  aggregation: avg
+  thresholds:
+    direction: higher_is_better
+    warning: 0.60
+    critical: 0.55
+  formatting:
+    suffix: "%"
+    decimals: 1
+    abbreviate: false
+  tags:
+    - income_statement
+    - profitability
+    - kpi
+  owner: finance-team
+  reviewCycle: monthly
+---
+apiVersion: financeos.io/v1
+kind: SemanticMetric
+metadata:
+  name: ebitda-margin
+  slug: ebitda_margin
+  namespace: finance
+  labels:
+    domain: income_statement
+    tier: "1"
+spec:
+  displayName: EBITDA Margin
+  description: >
+    Earnings before interest, taxes, depreciation, and amortization as a
+    percentage of revenue. Widely used proxy for operating cash generation.
+  category: margin
+  unit: percentage
+  formula: "ebitda / total_revenue"
+  dependencies:
+    - ebitda
+    - total_revenue
+  dataSource:
+    warehouse: snowflake
+    table: finance.fact_income_statement
+    column: ebitda
+    grain: monthly
+  aggregation: avg
+  thresholds:
+    direction: higher_is_better
+    warning: 0.15
+    critical: 0.10
+  formatting:
+    suffix: "%"
+    decimals: 1
+    abbreviate: false
+  tags:
+    - income_statement
+    - profitability
+    - kpi
+  owner: finance-team
+  reviewCycle: monthly

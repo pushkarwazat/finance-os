@@ -1,0 +1,53 @@
+import { AppLayout } from "@/components/layout"
+import { Switch, Route, Router as WouterRouter } from "wouter"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { Toaster } from "@/components/ui/toaster"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import NotFound from "@/pages/not-found"
+import { ThemeProvider } from "next-themes"
+
+// Import pages
+import { MetricsPage } from "@/pages/metrics"
+import { AskPage } from "@/pages/ask"
+import { VariancePage } from "@/pages/variance"
+import { ClosePage } from "@/pages/close"
+import { DocumentsPage } from "@/pages/documents"
+import { GovernancePage } from "@/pages/governance"
+import { EvalsPage } from "@/pages/evals"
+
+const queryClient = new QueryClient()
+
+function Router() {
+  return (
+    <AppLayout>
+      <Switch>
+        <Route path="/" component={MetricsPage} />
+        <Route path="/metrics" component={MetricsPage} />
+        <Route path="/ask" component={AskPage} />
+        <Route path="/variance" component={VariancePage} />
+        <Route path="/close" component={ClosePage} />
+        <Route path="/documents" component={DocumentsPage} />
+        <Route path="/governance" component={GovernancePage} />
+        <Route path="/evals" component={EvalsPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </AppLayout>
+  )
+}
+
+function App() {
+  return (
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  )
+}
+
+export default App

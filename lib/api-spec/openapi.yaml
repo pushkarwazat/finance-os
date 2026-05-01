@@ -2,14 +2,31 @@ openapi: 3.1.0
 info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 1.0.0
+  description: FinanceOS Enterprise Finance AI Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: metrics
+    description: Finance metric operations
+  - name: ask
+    description: AI-powered Q&A
+  - name: variance
+    description: Variance analysis
+  - name: close
+    description: Financial close management
+  - name: documents
+    description: Document library
+  - name: governance
+    description: Governance, approvals, audit
+  - name: evals
+    description: Agent evaluation and benchmarks
+  - name: agents
+    description: Agent registry and sessions
+
 paths:
   /healthz:
     get:
@@ -24,8 +41,584 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Metrics ─────────────────────────────────────────────────
+  /metrics:
+    get:
+      operationId: listMetrics
+      tags: [metrics]
+      summary: List finance metrics
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: "#/components/schemas/MetricCategory"
+        - name: period
+          in: query
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: fiscalYear
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Paginated list of metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricListResponse"
+
+  /metrics/summary:
+    get:
+      operationId: getMetricSummary
+      tags: [metrics]
+      summary: Get metric dashboard summary
+      parameters:
+        - name: period
+          in: query
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: fiscalYear
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Metric summary statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetricSummary"
+
+  /metrics/{id}:
+    get:
+      operationId: getMetric
+      tags: [metrics]
+      summary: Get a metric by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Metric detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Metric"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Ask ──────────────────────────────────────────────────────
+  /ask:
+    post:
+      operationId: submitQuestion
+      tags: [ask]
+      summary: Submit a natural language question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskRequest"
+      responses:
+        "200":
+          description: Answer with citations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskResponse"
+
+  /ask/sessions:
+    get:
+      operationId: listAskSessions
+      tags: [ask]
+      summary: List recent Q&A sessions
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskSessionListResponse"
+
+  # ── Variance ─────────────────────────────────────────────────
+  /variance:
+    get:
+      operationId: listVarianceDrivers
+      tags: [variance]
+      summary: List variance drivers
+      parameters:
+        - name: metricId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: period
+          in: query
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: fiscalYear
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: List of variance drivers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VarianceDriverListResponse"
+
+  /variance/forecast:
+    get:
+      operationId: listForecasts
+      tags: [variance]
+      summary: List forecast vs actuals
+      parameters:
+        - name: period
+          in: query
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: fiscalYear
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Forecast records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForecastListResponse"
+
+  # ── Close ─────────────────────────────────────────────────────
+  /close/tasks:
+    get:
+      operationId: listCloseTasks
+      tags: [close]
+      summary: List financial close tasks
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/CloseTaskStatus"
+        - name: period
+          in: query
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: fiscalYear
+          in: query
+          schema:
+            type: integer
+        - name: assigneeId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of close tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloseTaskListResponse"
+    post:
+      operationId: createCloseTask
+      tags: [close]
+      summary: Create a new close task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCloseTaskRequest"
+      responses:
+        "201":
+          description: Created task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloseTask"
+
+  /close/tasks/{id}:
+    get:
+      operationId: getCloseTask
+      tags: [close]
+      summary: Get close task by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Close task detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloseTask"
+    patch:
+      operationId: updateCloseTask
+      tags: [close]
+      summary: Update a close task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCloseTaskRequest"
+      responses:
+        "200":
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloseTask"
+
+  /close/summary:
+    get:
+      operationId: getCloseSummary
+      tags: [close]
+      summary: Get close progress summary
+      parameters:
+        - name: period
+          in: query
+          schema:
+            $ref: "#/components/schemas/Period"
+        - name: fiscalYear
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Close summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CloseSummary"
+
+  # ── Documents ────────────────────────────────────────────────
+  /documents:
+    get:
+      operationId: listDocuments
+      tags: [documents]
+      summary: List documents
+      parameters:
+        - name: type
+          in: query
+          schema:
+            $ref: "#/components/schemas/DocumentType"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/DocumentStatus"
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Document list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentListResponse"
+
+  /documents/stats:
+    get:
+      operationId: getDocumentStats
+      tags: [documents]
+      summary: Get document library statistics
+      responses:
+        "200":
+          description: Document stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentStats"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      tags: [documents]
+      summary: Get document by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Document detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+
+  # ── Governance ───────────────────────────────────────────────
+  /governance/approvals:
+    get:
+      operationId: listApprovals
+      tags: [governance]
+      summary: List approval requests
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ApprovalStatus"
+        - name: resourceType
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Approval requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalListResponse"
+
+  /governance/approvals/{id}/decide:
+    post:
+      operationId: decideApproval
+      tags: [governance]
+      summary: Approve or reject a request
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalDecisionRequest"
+      responses:
+        "200":
+          description: Updated approval
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalRequest"
+
+  /governance/audit:
+    get:
+      operationId: listAuditEvents
+      tags: [governance]
+      summary: List audit events
+      parameters:
+        - name: actorId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: resourceType
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditEventListResponse"
+
+  /governance/policies:
+    get:
+      operationId: listPolicies
+      tags: [governance]
+      summary: List governance policies
+      responses:
+        "200":
+          description: Policies
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PolicyListResponse"
+
+  # ── Evals ─────────────────────────────────────────────────────
+  /evals/suites:
+    get:
+      operationId: listEvalSuites
+      tags: [evals]
+      summary: List benchmark suites
+      responses:
+        "200":
+          description: Eval suites
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalSuiteListResponse"
+
+  /evals/runs:
+    get:
+      operationId: listEvalRuns
+      tags: [evals]
+      summary: List evaluation runs
+      parameters:
+        - name: suiteId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: agentId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Eval runs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalRunListResponse"
+    post:
+      operationId: createEvalRun
+      tags: [evals]
+      summary: Start a new evaluation run
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEvalRunRequest"
+      responses:
+        "201":
+          description: Created eval run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalRun"
+
+  # ── Agents ───────────────────────────────────────────────────
+  /agents:
+    get:
+      operationId: listAgents
+      tags: [agents]
+      summary: List registered agents
+      responses:
+        "200":
+          description: Agents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentListResponse"
+
+  /agents/{id}/sessions:
+    get:
+      operationId: listAgentSessions
+      tags: [agents]
+      summary: List sessions for an agent
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Agent sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentSessionListResponse"
+
 components:
   schemas:
+    # ── Primitives ───────────────────────────────────────────
     HealthStatus:
       type: object
       properties:
@@ -34,3 +627,1086 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+      required:
+        - error
+        - statusCode
+
+    Period:
+      type: string
+      enum: [Q1, Q2, Q3, Q4, FY, MTD, YTD, LTM]
+
+    Currency:
+      type: string
+      enum: [USD, EUR, GBP, JPY, CAD]
+
+    MetricCategory:
+      type: string
+      enum: [revenue, expense, margin, liquidity, leverage, efficiency, valuation, growth]
+
+    DocumentType:
+      type: string
+      enum:
+        [
+          financial_statement,
+          audit_report,
+          board_deck,
+          budget_model,
+          variance_commentary,
+          policy,
+          contract,
+          other,
+        ]
+
+    DocumentStatus:
+      type: string
+      enum: [uploading, processing, indexed, failed, archived]
+
+    CloseTaskStatus:
+      type: string
+      enum: [pending, in_progress, review, approved, blocked, complete]
+
+    ApprovalStatus:
+      type: string
+      enum: [pending, approved, rejected, escalated, expired]
+
+    # ── Finance Models ───────────────────────────────────────
+    Metric:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        category:
+          $ref: "#/components/schemas/MetricCategory"
+        description:
+          type: string
+        formula:
+          type: string
+        unit:
+          type: string
+          enum: [currency, percentage, ratio, count, days]
+        value:
+          type: number
+        previousValue:
+          type: number
+        variance:
+          type: number
+        variancePct:
+          type: number
+        period:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+        currency:
+          $ref: "#/components/schemas/Currency"
+        tags:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - slug
+        - category
+        - description
+        - unit
+        - value
+        - period
+        - fiscalYear
+        - currency
+        - tags
+        - updatedAt
+
+    MetricListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Metric"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - data
+        - total
+        - limit
+        - offset
+
+    MetricSummary:
+      type: object
+      properties:
+        totalMetrics:
+          type: integer
+        byCategory:
+          type: object
+          additionalProperties:
+            type: integer
+        favorableVariances:
+          type: integer
+        unfavorableVariances:
+          type: integer
+        period:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+      required:
+        - totalMetrics
+        - byCategory
+        - favorableVariances
+        - unfavorableVariances
+        - period
+        - fiscalYear
+
+    VarianceDriver:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        metricId:
+          type: string
+          format: uuid
+        driver:
+          type: string
+        impact:
+          type: number
+        impactPct:
+          type: number
+        explanation:
+          type: string
+        category:
+          type: string
+          enum: [volume, price, mix, fx, one-time, structural]
+        period:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+      required:
+        - id
+        - metricId
+        - driver
+        - impact
+        - impactPct
+        - explanation
+        - category
+        - period
+        - fiscalYear
+
+    VarianceDriverListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/VarianceDriver"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    Forecast:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        metricId:
+          type: string
+          format: uuid
+        metricName:
+          type: string
+        period:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+        actual:
+          type: number
+          nullable: true
+        budget:
+          type: number
+        forecast:
+          type: number
+        prior:
+          type: number
+          nullable: true
+        currency:
+          $ref: "#/components/schemas/Currency"
+        confidence:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - metricId
+        - metricName
+        - period
+        - fiscalYear
+        - budget
+        - forecast
+        - currency
+        - confidence
+        - updatedAt
+
+    ForecastListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Forecast"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    CloseTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: "#/components/schemas/CloseTaskStatus"
+        assigneeId:
+          type: string
+          format: uuid
+        assigneeName:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        closePeriod:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        dependencies:
+          type: array
+          items:
+            type: string
+            format: uuid
+        comments:
+          type: integer
+        attachments:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - name
+        - status
+        - dueDate
+        - closePeriod
+        - fiscalYear
+        - priority
+        - dependencies
+        - comments
+        - attachments
+        - updatedAt
+
+    CloseTaskListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CloseTask"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    CreateCloseTaskRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        assigneeId:
+          type: string
+          format: uuid
+        dueDate:
+          type: string
+          format: date
+        closePeriod:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+        dependencies:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+        - name
+        - dueDate
+        - closePeriod
+        - fiscalYear
+        - priority
+
+    UpdateCloseTaskRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          $ref: "#/components/schemas/CloseTaskStatus"
+        assigneeId:
+          type: string
+          format: uuid
+        dueDate:
+          type: string
+          format: date
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+
+    CloseSummary:
+      type: object
+      properties:
+        period:
+          $ref: "#/components/schemas/Period"
+        fiscalYear:
+          type: integer
+        totalTasks:
+          type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        overdueTasks:
+          type: integer
+        completionRate:
+          type: number
+        criticalOpen:
+          type: integer
+      required:
+        - period
+        - fiscalYear
+        - totalTasks
+        - byStatus
+        - overdueTasks
+        - completionRate
+        - criticalOpen
+
+    # ── Ask ────────────────────────────────────────────────────
+    AskRequest:
+      type: object
+      properties:
+        question:
+          type: string
+        sessionId:
+          type: string
+          format: uuid
+        filters:
+          type: object
+          properties:
+            documentTypes:
+              type: array
+              items:
+                $ref: "#/components/schemas/DocumentType"
+            fiscalYear:
+              type: integer
+            period:
+              $ref: "#/components/schemas/Period"
+      required:
+        - question
+
+    Citation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        documentId:
+          type: string
+          format: uuid
+        documentTitle:
+          type: string
+        chunkIndex:
+          type: integer
+        pageNumber:
+          type: integer
+        excerpt:
+          type: string
+        relevanceScore:
+          type: number
+        queryId:
+          type: string
+          format: uuid
+      required:
+        - id
+        - documentId
+        - documentTitle
+        - chunkIndex
+        - excerpt
+        - relevanceScore
+        - queryId
+
+    AskResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          format: uuid
+        messageId:
+          type: string
+          format: uuid
+        question:
+          type: string
+        answer:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        agentId:
+          type: string
+          format: uuid
+        latencyMs:
+          type: integer
+        tokens:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - sessionId
+        - messageId
+        - question
+        - answer
+        - citations
+        - createdAt
+
+    AskSessionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        messageCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - messageCount
+        - createdAt
+        - updatedAt
+
+    AskSessionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AskSessionSummary"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    # ── Documents ───────────────────────────────────────────────
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        filename:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+        type:
+          $ref: "#/components/schemas/DocumentType"
+        status:
+          $ref: "#/components/schemas/DocumentStatus"
+        tags:
+          type: array
+          items:
+            type: string
+        uploadedBy:
+          type: string
+          format: uuid
+        uploaderName:
+          type: string
+        chunkCount:
+          type: integer
+        pageCount:
+          type: integer
+        summary:
+          type: string
+        fiscalYear:
+          type: integer
+        period:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - filename
+        - mimeType
+        - sizeBytes
+        - type
+        - status
+        - tags
+        - uploadedBy
+        - uploaderName
+        - chunkCount
+        - createdAt
+        - updatedAt
+
+    DocumentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Document"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+      required:
+        - data
+        - total
+        - limit
+        - offset
+
+    DocumentStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        byType:
+          type: object
+          additionalProperties:
+            type: integer
+        byStatus:
+          type: object
+          additionalProperties:
+            type: integer
+        totalSizeBytes:
+          type: integer
+        totalChunks:
+          type: integer
+      required:
+        - total
+        - byType
+        - byStatus
+        - totalSizeBytes
+        - totalChunks
+
+    # ── Governance ──────────────────────────────────────────────
+    ApprovalRequestApprover:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+        status:
+          $ref: "#/components/schemas/ApprovalStatus"
+        decidedAt:
+          type: string
+          format: date-time
+          nullable: true
+        comment:
+          type: string
+      required:
+        - userId
+        - name
+        - role
+        - status
+
+    ApprovalRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        resourceType:
+          type: string
+          enum: [metric, document, workflow, close_task, policy]
+        resourceId:
+          type: string
+          format: uuid
+        resourceLabel:
+          type: string
+        requestedBy:
+          type: string
+          format: uuid
+        requesterName:
+          type: string
+        approvers:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalRequestApprover"
+        requiredApprovals:
+          type: integer
+        status:
+          $ref: "#/components/schemas/ApprovalStatus"
+        priority:
+          type: string
+          enum: [low, normal, high, urgent]
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - resourceType
+        - resourceId
+        - resourceLabel
+        - requestedBy
+        - requesterName
+        - approvers
+        - requiredApprovals
+        - status
+        - priority
+        - createdAt
+        - updatedAt
+
+    ApprovalListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalRequest"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    ApprovalDecisionRequest:
+      type: object
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected]
+        comment:
+          type: string
+      required:
+        - decision
+
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        actorId:
+          type: string
+          format: uuid
+        actorName:
+          type: string
+        actorRole:
+          type: string
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+          format: uuid
+        resourceLabel:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        outcome:
+          type: string
+          enum: [success, failure, denied]
+        details:
+          type: object
+          additionalProperties: true
+      required:
+        - id
+        - actorId
+        - actorName
+        - actorRole
+        - action
+        - resourceType
+        - resourceId
+        - resourceLabel
+        - timestamp
+        - outcome
+
+    AuditEventListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    Policy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [approval, access, retention, classification, disclosure]
+        version:
+          type: string
+        effectiveDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [draft, active, retired]
+        ownerId:
+          type: string
+          format: uuid
+        ownerName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - category
+        - version
+        - effectiveDate
+        - status
+        - ownerId
+        - ownerName
+        - createdAt
+        - updatedAt
+
+    PolicyListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Policy"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    # ── Evals ───────────────────────────────────────────────────
+    EvalSuite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        caseCount:
+          type: integer
+        metrics:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - caseCount
+        - metrics
+        - version
+        - createdAt
+
+    EvalSuiteListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvalSuite"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    EvalRunResult:
+      type: object
+      properties:
+        caseId:
+          type: string
+          format: uuid
+        caseName:
+          type: string
+        output:
+          type: string
+        scores:
+          type: object
+          additionalProperties:
+            type: number
+        latencyMs:
+          type: integer
+        passed:
+          type: boolean
+      required:
+        - caseId
+        - caseName
+        - output
+        - scores
+        - latencyMs
+        - passed
+
+    EvalRun:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        suiteId:
+          type: string
+          format: uuid
+        suiteName:
+          type: string
+        agentId:
+          type: string
+          format: uuid
+        agentName:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, complete, failed]
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvalRunResult"
+        aggregateScores:
+          type: object
+          additionalProperties:
+            type: number
+        passRate:
+          type: number
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - suiteId
+        - suiteName
+        - agentId
+        - agentName
+        - status
+        - results
+        - createdAt
+
+    EvalRunListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvalRun"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    CreateEvalRunRequest:
+      type: object
+      properties:
+        suiteId:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+      required:
+        - suiteId
+        - agentId
+
+    # ── Agents ──────────────────────────────────────────────────
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [idle, processing, paused, error, offline]
+        version:
+          type: string
+        modelId:
+          type: string
+        contextWindowTokens:
+          type: integer
+        lastHeartbeatAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - id
+        - name
+        - description
+        - capabilities
+        - status
+        - version
+        - modelId
+        - contextWindowTokens
+
+    AgentListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Agent"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    AgentSessionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        agentId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        messageCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - agentId
+        - messageCount
+        - createdAt
+        - updatedAt
+
+    AgentSessionListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentSessionSummary"
+        total:
+          type: integer
+      required:
+        - data
+        - total
