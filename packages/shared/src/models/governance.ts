@@ -3,6 +3,8 @@ import { z } from "zod";
 export const RoleSchema = z.enum([
   "viewer",
   "analyst",
+  "finance_manager",
+  "operator",
   "controller",
   "cfo",
   "auditor",
@@ -25,6 +27,7 @@ export const PermissionSchema = z.enum([
   "close:approve",
   "governance:read",
   "governance:write",
+  "governance:simulate",
   "evals:read",
   "evals:write",
   "ask:read",

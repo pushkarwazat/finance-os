@@ -172,6 +172,9 @@ importers:
       '@financeos/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@financeos/governance':
+        specifier: workspace:*
+        version: link:../../packages/governance
       '@financeos/rag':
         specifier: workspace:*
         version: link:../../packages/rag

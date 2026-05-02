@@ -29,8 +29,47 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
       "close:read",
       "close:write",
       "governance:read",
+      "governance:simulate",
       "evals:read",
       "evals:write",
+      "ask:read",
+      "ask:write",
+    ],
+  },
+  finance_manager: {
+    role: "finance_manager",
+    description: "Manages finance team workflows within their department. Can review and approve low-value items.",
+    inheritsFrom: ["analyst"],
+    permissions: [
+      "metrics:read",
+      "metrics:write",
+      "documents:read",
+      "documents:write",
+      "workflows:read",
+      "workflows:write",
+      "workflows:approve",
+      "close:read",
+      "close:write",
+      "governance:read",
+      "governance:simulate",
+      "evals:read",
+      "evals:write",
+      "ask:read",
+      "ask:write",
+    ],
+  },
+  operator: {
+    role: "operator",
+    description: "Executes assigned workflow tasks. Read-only on financials; write access limited to workflow state.",
+    inheritsFrom: ["viewer"],
+    permissions: [
+      "metrics:read",
+      "documents:read",
+      "workflows:read",
+      "workflows:write",
+      "close:read",
+      "governance:read",
+      "evals:read",
       "ask:read",
       "ask:write",
     ],
@@ -39,7 +78,7 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
     role: "controller",
     description:
       "Full access to financial operations. Can approve metrics and close tasks. Cannot manage policies.",
-    inheritsFrom: ["analyst"],
+    inheritsFrom: ["finance_manager"],
     permissions: [
       "metrics:read",
       "metrics:write",
@@ -54,6 +93,7 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
       "close:write",
       "close:approve",
       "governance:read",
+      "governance:simulate",
       "evals:read",
       "evals:write",
       "ask:read",
@@ -79,6 +119,7 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
       "close:approve",
       "governance:read",
       "governance:write",
+      "governance:simulate",
       "evals:read",
       "evals:write",
       "ask:read",
@@ -96,6 +137,7 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
       "workflows:read",
       "close:read",
       "governance:read",
+      "governance:simulate",
       "evals:read",
       "ask:read",
     ],
@@ -119,6 +161,7 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
       "close:approve",
       "governance:read",
       "governance:write",
+      "governance:simulate",
       "evals:read",
       "evals:write",
       "ask:read",
@@ -130,9 +173,30 @@ export const RBAC_POLICIES: Record<Role, RbacPolicy> = {
 
 export function hasPermission(role: Role, permission: Permission): boolean {
   const policy = RBAC_POLICIES[role];
+  if (!policy) return false;
   return policy.permissions.includes(permission);
 }
 
 export function getPermissionsForRole(role: Role): Permission[] {
-  return RBAC_POLICIES[role].permissions;
+  const policy = RBAC_POLICIES[role];
+  if (!policy) return [];
+  return policy.permissions;
+}
+
+export function getRolesWithPermission(permission: Permission): Role[] {
+  return (Object.keys(RBAC_POLICIES) as Role[]).filter((r) =>
+    RBAC_POLICIES[r].permissions.includes(permission)
+  );
+}
+
+export function getRoleHierarchy(role: Role): Role[] {
+  const visited = new Set<Role>();
+  const collect = (r: Role) => {
+    if (visited.has(r)) return;
+    visited.add(r);
+    const policy = RBAC_POLICIES[r];
+    if (policy) policy.inheritsFrom.forEach(collect);
+  };
+  collect(role);
+  return Array.from(visited);
 }

@@ -15,6 +15,7 @@
     "@financeos/semantic": "workspace:*",
     "@financeos/rag": "workspace:*",
     "@financeos/agents": "workspace:*",
+    "@financeos/governance": "workspace:*",
     "zod": "catalog:",
     "cookie-parser": "^1.4.7",
     "cors": "^2",

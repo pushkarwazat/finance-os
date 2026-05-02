@@ -86,10 +86,11 @@ All data is mock/in-memory. No external DB or vector DB required. Fixtures in `a
 
 ## Packages Summary
 
-- `packages/shared` — finance models (Metric, Forecast, CloseTask, Document, ApprovalRequest, AuditEvent)
+- `packages/shared` — finance models (Metric, Forecast, CloseTask, Document, ApprovalRequest, AuditEvent) + Role enum with 8 roles (viewer, analyst, finance_manager, operator, controller, cfo, auditor, admin) + Permission enum with 21 permissions
 - `packages/agents` — Full workflow agent layer: 6 finance agents, state machines, approval/exception/action schemas, mock engine, orchestrator routing
 - `packages/semantic` — SemanticMetricYaml YAML schema, DataContract, metric registry interface
 - `packages/rag` — Full RAG layer: 7 document type schemas, chunk/citation schemas, 7-step ingestion pipeline, hybrid retrieval contracts, mock providers, 7 document fixtures + 17 chunks, 25-case eval suite, tenant isolation
+- `packages/governance` — Enterprise governance layer: RBAC (8 roles), row-level access, column sensitivity tags, prompt/response logging, abstention policies, evidence requirements, model registry, environment config, release management, mock security middleware, sample finance policies
 
 ## RAG Layer (`packages/rag` — `@financeos/rag`)
 
