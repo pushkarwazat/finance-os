@@ -172,6 +172,9 @@ importers:
       '@financeos/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@financeos/evals':
+        specifier: workspace:*
+        version: link:../../packages/evals
       '@financeos/governance':
         specifier: workspace:*
         version: link:../../packages/governance

@@ -25,7 +25,7 @@ export const BenchmarkCaseSchema = z.object({
   expectedOutput: z.string().optional(),
   referenceDocumentIds: z.array(z.string().uuid()).default([]),
   tags: z.array(z.string()).default([]),
-  domain: z.enum(["metrics", "variance", "documents", "close", "governance", "general"]),
+  domain: z.enum(["metrics", "variance", "documents", "close", "governance", "general", "workflow", "ambiguous", "abstain"]),
   difficulty: z.enum(["easy", "medium", "hard", "expert"]),
   metadata: z.record(z.string(), z.unknown()).default({}),
 });

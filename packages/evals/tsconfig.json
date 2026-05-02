@@ -10,7 +10,9 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "types": ["node"]
   },
   "references": [{ "path": "../shared" }]
 }
