@@ -10,6 +10,7 @@ import evalsRouter from "./evals.js";
 import agentsRouter from "./agents.js";
 import semanticRouter from "./semantic.js";
 import analyticsRouter from "./analytics.js";
+import ragRouter from "./rag.js";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(evalsRouter);
 router.use(agentsRouter);
 router.use(semanticRouter);
 router.use(analyticsRouter);
+router.use(ragRouter);
 
 export default router;

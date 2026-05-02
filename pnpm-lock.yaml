@@ -169,6 +169,9 @@ importers:
 
   artifacts/api-server:
     dependencies:
+      '@financeos/rag':
+        specifier: workspace:*
+        version: link:../../packages/rag
       '@financeos/semantic':
         specifier: workspace:*
         version: link:../../packages/semantic
