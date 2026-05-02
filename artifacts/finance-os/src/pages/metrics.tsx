@@ -69,7 +69,7 @@ export function MetricsPage() {
           Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-32 w-full" />
           ))
-        ) : metrics?.data.map((metric, i) => {
+        ) : metrics?.data?.map((metric, i) => {
           const isFavorable = metric.variance && metric.variance > 0
           const isUnfavorable = metric.variance && metric.variance < 0
           
