@@ -169,9 +169,15 @@ importers:
 
   artifacts/api-server:
     dependencies:
+      '@financeos/adapters':
+        specifier: workspace:*
+        version: link:../../packages/adapters
       '@financeos/agents':
         specifier: workspace:*
         version: link:../../packages/agents
+      '@financeos/container':
+        specifier: workspace:*
+        version: link:../../packages/container
       '@financeos/evals':
         specifier: workspace:*
         version: link:../../packages/evals
@@ -184,6 +190,9 @@ importers:
       '@financeos/semantic':
         specifier: workspace:*
         version: link:../../packages/semantic
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@workspace/api-zod':
         specifier: workspace:*
         version: link:../../lib/api-zod
@@ -655,6 +664,22 @@ importers:
         specifier: ^0.31.9
         version: 0.31.9
 
+  packages/adapters:
+    dependencies:
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
   packages/agents:
     dependencies:
       '@financeos/shared':
@@ -663,6 +688,22 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
+  packages/container:
+    dependencies:
+      '@financeos/adapters':
+        specifier: workspace:*
+        version: link:../adapters
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../shared
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

@@ -43,7 +43,7 @@ function zodErrorsToValidationErrors(err: z.ZodError): ValidationError[] {
   return err.issues.map((issue) => ({
     path: issue.path.join("."),
     message: issue.message,
-    value: "received" in issue ? (issue as z.ZodIssueOptionalMessage).received : undefined,
+    value: "received" in issue ? (issue as { received: unknown }).received : undefined,
   }));
 }
 

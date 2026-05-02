@@ -63,8 +63,8 @@ router.post("/governance/approvals/:id/decide", (req, res) => {
   }
   const approval = approvals[idx];
   approval.status = bodyParsed.data.decision === "approved" ? "approved" : "rejected";
-  approval.updatedAt = new Date().toISOString();
-  approval.resolvedAt = new Date().toISOString();
+  approval.updatedAt = new Date();
+  approval.resolvedAt = new Date();
   approvals[idx] = approval;
   auditEvents.push({
     id: randomUUID(),
@@ -75,7 +75,7 @@ router.post("/governance/approvals/:id/decide", (req, res) => {
     resourceType: approval.resourceType,
     resourceId: approval.resourceId,
     resourceLabel: approval.resourceLabel,
-    timestamp: new Date().toISOString(),
+    timestamp: new Date(),
     outcome: "success",
     details: { comment: bodyParsed.data.comment ?? null },
   });
@@ -315,7 +315,7 @@ router.post("/governance/simulate", (req, res) => {
     input: { role, permission, dataDomains },
     result,
     details: {
-      rbacPolicy: RBAC_POLICIES[role as Role] ?? null,
+      rbacPolicy: RBAC_POLICIES[role as keyof typeof RBAC_POLICIES] ?? null,
       rowAccessPolicies: matchingRowAccess,
       abstentionPolicies: matchingAbstentionPolicies,
       evidenceRequirements: matchingEvidenceReqs,

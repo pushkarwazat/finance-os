@@ -568,7 +568,7 @@ export function EvalsPage() {
   const queryClient = useQueryClient()
 
   const { data: suitesResponse, isLoading: isLoadingSuites } = useListEvalSuites()
-  const suites = (suitesResponse?.data ?? []) as Suite[]
+  const suites = (suitesResponse?.data ?? []) as unknown as Suite[]
 
   useEffect(() => {
     if (suites.length > 0 && !selectedSuiteId) {
@@ -578,15 +578,15 @@ export function EvalsPage() {
 
   const { data: runsResponse, isLoading: isLoadingRuns } = useListEvalRuns(
     selectedSuiteId ? { suiteId: selectedSuiteId } : undefined,
-    { query: { enabled: !!selectedSuiteId, refetchInterval: 3000 } }
+    { query: { queryKey: ["eval-runs", selectedSuiteId], enabled: !!selectedSuiteId, refetchInterval: 3000 } }
   )
-  const runs = (runsResponse?.data ?? []) as RunSummary[]
+  const runs = (runsResponse?.data ?? []) as unknown as RunSummary[]
 
   const { data: allRunsResponse } = useListEvalRuns(
     undefined,
-    { query: { refetchInterval: 5000 } }
+    { query: { queryKey: ["eval-runs-all"], refetchInterval: 5000 } }
   )
-  const allRuns = (allRunsResponse?.data ?? []) as RunSummary[]
+  const allRuns = (allRunsResponse?.data ?? []) as unknown as RunSummary[]
 
   const { data: summary } = useQuery<EvalSummary>({
     queryKey: ["/api/evals/summary"],

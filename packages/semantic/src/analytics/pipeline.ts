@@ -57,7 +57,7 @@ function resolveTimeRange(q: string): ResolvedTimeRange | null {
     const label = `Q${qNum} FY${yr}`;
     return {
       inferred: false,
-      timeRange: { start: `${yr}-${starts[qNum - 1]}`, end: `${yr}-${ends[qNum - 1]}`, granularity: "month", label },
+      timeRange: { start: `${yr}-${starts[qNum - 1]}`, end: `${yr}-${ends[qNum - 1]}`, granularity: "month", label, inferred: false },
     };
   }
 
@@ -74,25 +74,25 @@ function resolveTimeRange(q: string): ResolvedTimeRange | null {
       inferred: false,
       timeRange: {
         start: `${yr}-${m}-01`, end: `${yr}-${m}-${lastDay}`,
-        granularity: "day", label: `${monthMatch[0].trim()}`,
+        granularity: "day", label: `${monthMatch[0].trim()}`, inferred: false,
       },
     };
   }
 
   if (/\b(last|past)\s+6\s+months?\b/i.test(q)) {
-    return { inferred: false, timeRange: { start: "2025-03-01", end: "2025-09-30", granularity: "month", label: "Last 6 months" } };
+    return { inferred: false, timeRange: { start: "2025-03-01", end: "2025-09-30", granularity: "month", label: "Last 6 months", inferred: false } };
   }
   if (/\b(last|past)\s+3\s+months?\b/i.test(q)) {
-    return { inferred: false, timeRange: { start: "2025-06-01", end: "2025-09-30", granularity: "month", label: "Last 3 months" } };
+    return { inferred: false, timeRange: { start: "2025-06-01", end: "2025-09-30", granularity: "month", label: "Last 3 months", inferred: false } };
   }
   if (/\b(last|past)\s+12\s+months?\b/i.test(q) || /\b(ltm|trailing twelve)\b/i.test(q)) {
-    return { inferred: false, timeRange: { start: "2024-10-01", end: "2025-09-30", granularity: "month", label: "Last 12 months" } };
+    return { inferred: false, timeRange: { start: "2024-10-01", end: "2025-09-30", granularity: "month", label: "Last 12 months", inferred: false } };
   }
   if (/\bfy\s*2025\b|\bfiscal\s+year\s+2025\b|\byear to date\b|\bytd\b/i.test(q)) {
-    return { inferred: false, timeRange: { start: "2025-01-01", end: "2025-09-30", granularity: "month", label: "FY2025 YTD" } };
+    return { inferred: false, timeRange: { start: "2025-01-01", end: "2025-09-30", granularity: "month", label: "FY2025 YTD", inferred: false } };
   }
   if (/\bfy\s*2024\b/i.test(q)) {
-    return { inferred: false, timeRange: { start: "2024-01-01", end: "2024-12-31", granularity: "month", label: "FY2024" } };
+    return { inferred: false, timeRange: { start: "2024-01-01", end: "2024-12-31", granularity: "month", label: "FY2024", inferred: false } };
   }
 
   return null;

@@ -40,7 +40,7 @@ router.post("/close/tasks", (req, res) => {
     comments: 0,
     attachments: 0,
     dependencies: parsed.data.dependencies ?? [],
-    updatedAt: new Date().toISOString(),
+    updatedAt: new Date(),
     completedAt: null,
     ...parsed.data,
   };
@@ -77,8 +77,8 @@ router.patch("/close/tasks/:id", (req, res) => {
   const updated = {
     ...tasks[idx],
     ...Object.fromEntries(Object.entries(bodyParsed.data).filter(([, v]) => v !== undefined)),
-    updatedAt: new Date().toISOString(),
-    completedAt: bodyParsed.data.status === "complete" ? new Date().toISOString() : tasks[idx].completedAt,
+    updatedAt: new Date(),
+    completedAt: bodyParsed.data.status === "complete" ? new Date() : tasks[idx].completedAt,
   };
   tasks[idx] = updated;
   res.json(updated);

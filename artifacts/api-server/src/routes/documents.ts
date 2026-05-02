@@ -23,7 +23,7 @@ router.get("/documents", (req, res) => {
       (d) =>
         d.title.toLowerCase().includes(s) ||
         d.filename.toLowerCase().includes(s) ||
-        d.tags.some((t) => t.toLowerCase().includes(s))
+        d.tags.some((t: string) => t.toLowerCase().includes(s))
     );
   }
   const total = filtered.length;
