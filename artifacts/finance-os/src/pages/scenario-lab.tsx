@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Separator } from "@/components/ui/separator"
-import { Info, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { Info, TrendingUp, TrendingDown } from "lucide-react"
 
 const BASE = import.meta.env.BASE_URL
 

@@ -219,15 +219,6 @@ router.get("/insights/feed", (req, res) => {
   res.json({ data: filtered.slice(0, parsed.data.limit), summary, total: filtered.length });
 });
 
-router.get("/insights/:id", (req, res) => {
-  const insight = MOCK_INSIGHTS.find((i) => i.id === req.params.id);
-  if (!insight) {
-    res.status(404).json({ error: "not_found", statusCode: 404, message: "Insight not found" });
-    return;
-  }
-  res.json({ data: insight });
-});
-
 router.get("/insights/recommendations/feed", (req, res) => {
   const QuerySchema = z.object({
     status: z.string().optional(),
@@ -313,6 +304,16 @@ router.get("/insights/cost-reduction", (_req, res) => {
     },
     total: MOCK_COST_REDUCTION.length,
   });
+});
+
+// Dynamic route last — must come after all static single-segment paths
+router.get("/insights/:id", (req, res) => {
+  const insight = MOCK_INSIGHTS.find((i) => i.id === req.params.id);
+  if (!insight) {
+    res.status(404).json({ error: "not_found", statusCode: 404, message: "Insight not found" });
+    return;
+  }
+  res.json({ data: insight });
 });
 
 export default router;

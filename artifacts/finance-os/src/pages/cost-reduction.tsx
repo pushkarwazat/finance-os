@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Info, Zap, Clock } from "lucide-react"
 import { Link } from "wouter"
