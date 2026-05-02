@@ -1,0 +1,409 @@
+{
+  "schemaVersion": "requirements.financeos.io/v1",
+  "extractedAt": "2026-05-02T00:00:00Z",
+  "sourceRef": "attached_assets/Pasted-Add-a-new-requirement-ingestion-and-implementation-laye_1777729171732.txt",
+  "primarySourceStatus": "inaccessible — Google Doc requires authentication",
+  "categories": {
+    "businessGoals": [
+      {
+        "id": "BG-001",
+        "goal": "Automate period-end financial close with AI-assisted commentary and human sign-off gates",
+        "priority": "P0",
+        "existingModule": "packages/agents/src/agents/close-management.ts",
+        "status": "existing"
+      },
+      {
+        "id": "BG-002",
+        "goal": "Provide on-demand variance analysis with root-cause attribution and board commentary drafts",
+        "priority": "P0",
+        "existingModule": "packages/agents/src/agents/variance-analyst.ts",
+        "status": "existing"
+      },
+      {
+        "id": "BG-003",
+        "goal": "Enable AI-powered document Q&A over all financial evidence sources with citation transparency",
+        "priority": "P0",
+        "existingModule": "packages/rag/",
+        "status": "existing"
+      },
+      {
+        "id": "BG-004",
+        "goal": "Automate AP invoice matching and exception routing",
+        "priority": "P0",
+        "existingModule": "packages/agents/src/agents/ap-invoice-research.ts",
+        "status": "existing"
+      },
+      {
+        "id": "BG-005",
+        "goal": "Manage AR collections with AI-prioritised outreach and escalation",
+        "priority": "P0",
+        "existingModule": "packages/agents/src/agents/ar-collections.ts",
+        "status": "existing"
+      },
+      {
+        "id": "BG-006",
+        "goal": "Deliver budget management with FP&A variance tracking and reforecast workflows",
+        "priority": "P0",
+        "newModule": "packages/agents/src/agents/budget-management.ts",
+        "status": "new — this phase"
+      },
+      {
+        "id": "BG-007",
+        "goal": "Provide real-time treasury and cash position monitoring with runway analysis",
+        "priority": "P0",
+        "newModule": "packages/agents/src/agents/treasury-management.ts",
+        "status": "new — this phase"
+      },
+      {
+        "id": "BG-008",
+        "goal": "Support tax provision ETR dashboarding and commentary under ASC 740",
+        "priority": "P1",
+        "newModule": "packages/agents/src/agents/tax-provision.ts",
+        "status": "new — this phase"
+      },
+      {
+        "id": "BG-009",
+        "goal": "Automate multi-entity consolidation and intercompany elimination reconciliation",
+        "priority": "P1",
+        "newModule": "packages/agents/src/agents/consolidation.ts",
+        "status": "new — this phase"
+      },
+      {
+        "id": "BG-010",
+        "goal": "Monitor debt covenant compliance with automated alerts and waiver-process initiation",
+        "priority": "P1",
+        "newModule": "packages/agents/src/agents/covenant-monitoring.ts",
+        "status": "new — this phase"
+      },
+      {
+        "id": "BG-011",
+        "goal": "Enforce SOX-compliant controls, dual approvals, and immutable audit trails across all workflows",
+        "priority": "P0",
+        "existingModule": "packages/governance/",
+        "newExtension": "packages/governance/src/sox-controls.ts",
+        "status": "extension"
+      }
+    ],
+    "userRoles": [
+      {
+        "id": "UR-001",
+        "role": "viewer",
+        "description": "Read-only access to metrics, documents, dashboards",
+        "status": "existing"
+      },
+      {
+        "id": "UR-002",
+        "role": "analyst",
+        "description": "FP&A analyst — can read/write metrics and documents, cannot approve",
+        "status": "existing"
+      },
+      {
+        "id": "UR-003",
+        "role": "finance_manager",
+        "description": "Department finance manager — can approve low-value items",
+        "status": "existing"
+      },
+      {
+        "id": "UR-004",
+        "role": "operator",
+        "description": "Workflow executor — limited to workflow state transitions",
+        "status": "existing"
+      },
+      {
+        "id": "UR-005",
+        "role": "controller",
+        "description": "Full financial operations access — can approve up to CFO threshold",
+        "status": "existing"
+      },
+      {
+        "id": "UR-006",
+        "role": "cfo",
+        "description": "Highest business authority — governance write, large-value approvals",
+        "status": "existing"
+      },
+      {
+        "id": "UR-007",
+        "role": "auditor",
+        "description": "Read-only + audit trail access — cannot mutate business data",
+        "status": "existing"
+      },
+      {
+        "id": "UR-008",
+        "role": "admin",
+        "description": "Full platform access including policy administration",
+        "status": "existing"
+      },
+      {
+        "id": "UR-009",
+        "role": "treasury_analyst",
+        "description": "Specialist role — treasury and cash management workflows only",
+        "status": "new — this phase",
+        "openQuestion": "OQ-010 — confirm role granularity with Treasury team"
+      },
+      {
+        "id": "UR-010",
+        "role": "tax_analyst",
+        "description": "Specialist role — tax provision workflows only",
+        "status": "new — this phase"
+      }
+    ],
+    "workflows": [
+      {
+        "id": "WF-001",
+        "name": "Period-End Close",
+        "description": "Checklist-driven close workflow with task assignment, evidence collection, and controller sign-off",
+        "status": "existing",
+        "module": "packages/agents/src/agents/close-management.ts"
+      },
+      {
+        "id": "WF-002",
+        "name": "Variance Analysis",
+        "description": "Automated budget-vs-actual computation, root-cause attribution, and management commentary draft",
+        "status": "existing",
+        "module": "packages/agents/src/agents/variance-analyst.ts"
+      },
+      {
+        "id": "WF-003",
+        "name": "AP Invoice Processing",
+        "description": "Invoice receipt, 3-way match, exception routing, payment approval",
+        "status": "existing",
+        "module": "packages/agents/src/agents/ap-invoice-research.ts"
+      },
+      {
+        "id": "WF-004",
+        "name": "AR Collections",
+        "description": "Aging analysis, collection prioritisation, outreach drafts, escalation",
+        "status": "existing",
+        "module": "packages/agents/src/agents/ar-collections.ts"
+      },
+      {
+        "id": "WF-005",
+        "name": "Reconciliation",
+        "description": "Balance reconciliation, clearing entry suggestion, controller approval",
+        "status": "existing",
+        "module": "packages/agents/src/agents/reconciliation.ts"
+      },
+      {
+        "id": "WF-006",
+        "name": "Budget Management",
+        "description": "Annual budget submission, approval, actuals loading, variance flagging, reforecast initiation",
+        "status": "new — this phase",
+        "module": "packages/agents/src/agents/budget-management.ts"
+      },
+      {
+        "id": "WF-007",
+        "name": "Treasury / Cash Management",
+        "description": "Daily cash position, runway calculation, sweep instructions (draft only), liquidity alerts",
+        "status": "new — this phase",
+        "module": "packages/agents/src/agents/treasury-management.ts"
+      },
+      {
+        "id": "WF-008",
+        "name": "Tax Provision",
+        "description": "Quarterly ETR calculation, rate reconciliation, provision workpaper review, sign-off",
+        "status": "new — this phase",
+        "module": "packages/agents/src/agents/tax-provision.ts"
+      },
+      {
+        "id": "WF-009",
+        "name": "Multi-Entity Consolidation",
+        "description": "Entity actuals aggregation, intercompany elimination, consolidation adjustments, group P&L",
+        "status": "new — this phase",
+        "module": "packages/agents/src/agents/consolidation.ts"
+      },
+      {
+        "id": "WF-010",
+        "name": "Covenant Monitoring",
+        "description": "Periodic covenant metric computation, threshold alerting, waiver-process initiation",
+        "status": "new — this phase",
+        "module": "packages/agents/src/agents/covenant-monitoring.ts"
+      }
+    ],
+    "financeProcesses": [
+      { "id": "FP-001", "process": "Revenue recognition (ASC 606)", "status": "existing" },
+      { "id": "FP-002", "process": "Expense accruals and prepaid amortisation", "status": "existing" },
+      { "id": "FP-003", "process": "Headcount and compensation planning", "status": "existing" },
+      { "id": "FP-004", "process": "Annual budget and rolling forecast", "status": "new — this phase" },
+      { "id": "FP-005", "process": "Cash flow forecasting and sweep management", "status": "new — this phase" },
+      { "id": "FP-006", "process": "Tax provision and ASC 740 rate reconciliation", "status": "new — this phase" },
+      { "id": "FP-007", "process": "Multi-entity consolidation and intercompany elimination", "status": "new — this phase" },
+      { "id": "FP-008", "process": "Debt covenant testing and compliance certification", "status": "new — this phase" },
+      { "id": "FP-009", "process": "SOX control testing and evidence collection", "status": "extension" },
+      { "id": "FP-010", "process": "External audit support and workpaper management", "status": "extension" }
+    ],
+    "dataEntities": [
+      { "id": "DE-001", "entity": "FiscalPeriod", "status": "existing", "module": "packages/semantic/src/schemas/entities.yaml" },
+      { "id": "DE-002", "entity": "Metric", "status": "existing", "module": "packages/semantic/src/metric-schema.ts" },
+      { "id": "DE-003", "entity": "WorkflowRun", "status": "existing", "module": "packages/agents/src/workflow/" },
+      { "id": "DE-004", "entity": "ApprovalStep", "status": "existing", "module": "packages/agents/src/workflow/approval-step.ts" },
+      { "id": "DE-005", "entity": "FinanceDocument", "status": "existing", "module": "packages/rag/src/documents/schema.ts" },
+      { "id": "DE-006", "entity": "LegalEntity", "status": "new", "module": "packages/semantic/src/schemas/entities.yaml" },
+      { "id": "DE-007", "entity": "BudgetModel", "status": "new", "module": "packages/semantic/src/schemas/entities.yaml" },
+      { "id": "DE-008", "entity": "IntercompanyTransaction", "status": "new", "module": "packages/semantic/src/schemas/entities.yaml" },
+      { "id": "DE-009", "entity": "DebtCovenant", "status": "new", "module": "packages/semantic/src/schemas/entities.yaml" },
+      { "id": "DE-010", "entity": "TaxProvision", "status": "new", "module": "packages/agents/src/agents/tax-provision.ts" }
+    ],
+    "documentTypes": [
+      { "id": "DT-001", "type": "contract", "status": "existing" },
+      { "id": "DT-002", "type": "invoice", "status": "existing" },
+      { "id": "DT-003", "type": "policy_doc", "status": "existing" },
+      { "id": "DT-004", "type": "close_memo", "status": "existing" },
+      { "id": "DT-005", "type": "board_deck", "status": "existing" },
+      { "id": "DT-006", "type": "audit_workpaper", "status": "existing" },
+      { "id": "DT-007", "type": "sop", "status": "existing" },
+      { "id": "DT-008", "type": "budget_model", "status": "new — this phase" },
+      { "id": "DT-009", "type": "treasury_report", "status": "new — this phase" },
+      { "id": "DT-010", "type": "tax_provision_workpaper", "status": "new — this phase" },
+      { "id": "DT-011", "type": "regulatory_filing", "status": "new — this phase" },
+      { "id": "DT-012", "type": "intercompany_memo", "status": "new — this phase" },
+      { "id": "DT-013", "type": "covenant_compliance_report", "status": "new — this phase" }
+    ],
+    "approvalRequirements": [
+      {
+        "id": "AR-001",
+        "action": "close.sign_off",
+        "minimumRole": "controller",
+        "dualApprovalAbove": null,
+        "evidenceRequired": ["close_checklist", "reconciliation_confirmation", "audit_event"],
+        "status": "existing"
+      },
+      {
+        "id": "AR-002",
+        "action": "metric.override",
+        "minimumRole": "controller",
+        "dualApprovalAbove": null,
+        "evidenceRequired": ["gl_export", "approval"],
+        "status": "existing"
+      },
+      {
+        "id": "AR-003",
+        "action": "budget.approve",
+        "minimumRole": "controller",
+        "dualApprovalAbove": "cfo",
+        "dualApprovalThresholdUsd": 500000,
+        "evidenceRequired": ["budget_model", "approval"],
+        "status": "new — this phase"
+      },
+      {
+        "id": "AR-004",
+        "action": "treasury.sweep_instruction",
+        "minimumRole": "controller",
+        "dualApprovalAbove": "cfo",
+        "dualApprovalThresholdUsd": 1000000,
+        "evidenceRequired": ["treasury_report", "approval"],
+        "status": "new — this phase"
+      },
+      {
+        "id": "AR-005",
+        "action": "tax.provision_sign_off",
+        "minimumRole": "controller",
+        "dualApprovalAbove": "cfo",
+        "dualApprovalThresholdUsd": 0,
+        "evidenceRequired": ["tax_provision_workpaper", "approval"],
+        "status": "new — this phase"
+      },
+      {
+        "id": "AR-006",
+        "action": "consolidation.sign_off",
+        "minimumRole": "controller",
+        "dualApprovalAbove": "cfo",
+        "dualApprovalThresholdUsd": 0,
+        "evidenceRequired": ["close_memo", "audit_event", "approval"],
+        "status": "new — this phase"
+      },
+      {
+        "id": "AR-007",
+        "action": "covenant.waiver_request",
+        "minimumRole": "cfo",
+        "dualApprovalAbove": "cfo",
+        "dualApprovalThresholdUsd": 0,
+        "evidenceRequired": ["covenant_compliance_report", "approval"],
+        "status": "new — this phase"
+      }
+    ],
+    "governanceControls": [
+      {
+        "id": "GC-001",
+        "control": "All material AI outputs require human approval before downstream use",
+        "framework": "internal",
+        "status": "existing",
+        "module": "packages/governance/src/approval-policies.ts"
+      },
+      {
+        "id": "GC-002",
+        "control": "RBAC enforced on all API endpoints and UI views",
+        "framework": "internal",
+        "status": "existing",
+        "module": "packages/governance/src/rbac.ts"
+      },
+      {
+        "id": "GC-003",
+        "control": "Immutable audit log for all governance and approval events",
+        "framework": "SOX",
+        "status": "existing",
+        "module": "packages/governance/src/audit.ts"
+      },
+      {
+        "id": "GC-004",
+        "control": "Column-level sensitivity classification prevents PII/MNPI data leakage through AI layer",
+        "framework": "internal",
+        "status": "existing",
+        "module": "packages/governance/src/column-sensitivity.ts"
+      },
+      {
+        "id": "GC-005",
+        "control": "SOX IT General Controls catalog with automated evidence collection",
+        "framework": "SOX",
+        "status": "new — this phase",
+        "module": "packages/governance/src/sox-controls.ts"
+      },
+      {
+        "id": "GC-006",
+        "control": "Materiality thresholds enforced per metric class — sub-threshold items auto-suppressed",
+        "framework": "GAAP",
+        "status": "new — this phase",
+        "module": "packages/governance/src/materiality.ts"
+      },
+      {
+        "id": "GC-007",
+        "control": "Per-action approval thresholds with escalation to dual approver for large amounts",
+        "framework": "internal",
+        "status": "new — this phase",
+        "module": "packages/governance/src/approval-thresholds.ts"
+      }
+    ],
+    "uiRequirements": [
+      { "id": "UI-001", "page": "Metrics Dashboard", "status": "existing", "path": "/metrics" },
+      { "id": "UI-002", "page": "Ask AI", "status": "existing", "path": "/ask" },
+      { "id": "UI-003", "page": "Variance Analysis", "status": "existing", "path": "/variance" },
+      { "id": "UI-004", "page": "Period-End Close", "status": "existing", "path": "/close" },
+      { "id": "UI-005", "page": "Documents", "status": "existing", "path": "/documents" },
+      { "id": "UI-006", "page": "Governance", "status": "existing", "path": "/governance" },
+      { "id": "UI-007", "page": "Evals", "status": "existing", "path": "/evals" },
+      { "id": "UI-008", "page": "Glossary", "status": "existing", "path": "/glossary" },
+      { "id": "UI-009", "page": "Agents", "status": "existing", "path": "/agents" },
+      { "id": "UI-010", "page": "Approvals Queue", "status": "existing", "path": "/approvals" },
+      { "id": "UI-011", "page": "Exceptions", "status": "existing", "path": "/exceptions" },
+      { "id": "UI-012", "page": "Budget Management", "status": "new — this phase", "path": "/budget" },
+      { "id": "UI-013", "page": "Treasury / Cash", "status": "new — this phase", "path": "/treasury" },
+      { "id": "UI-014", "page": "Consolidation", "status": "new — this phase", "path": "/consolidation" },
+      { "id": "UI-015", "page": "Requirements Inspector", "status": "new — this phase", "path": "/requirements" }
+    ],
+    "apiEndpoints": [
+      { "id": "API-001", "endpoint": "GET /api/metrics", "status": "existing" },
+      { "id": "API-002", "endpoint": "GET /api/variance", "status": "existing" },
+      { "id": "API-003", "endpoint": "GET /api/close", "status": "existing" },
+      { "id": "API-004", "endpoint": "GET /api/documents", "status": "existing" },
+      { "id": "API-005", "endpoint": "GET /api/governance", "status": "existing" },
+      { "id": "API-006", "endpoint": "GET /api/agents", "status": "existing" },
+      { "id": "API-007", "endpoint": "GET /api/budget", "status": "new — this phase" },
+      { "id": "API-008", "endpoint": "GET /api/budget/:id/variance", "status": "new — this phase" },
+      { "id": "API-009", "endpoint": "POST /api/budget/:id/approve", "status": "new — this phase" },
+      { "id": "API-010", "endpoint": "GET /api/treasury/positions", "status": "new — this phase" },
+      { "id": "API-011", "endpoint": "GET /api/treasury/covenants", "status": "new — this phase" },
+      { "id": "API-012", "endpoint": "GET /api/consolidation/runs", "status": "new — this phase" },
+      { "id": "API-013", "endpoint": "POST /api/consolidation/runs/:id/approve", "status": "new — this phase" },
+      { "id": "API-014", "endpoint": "GET /api/requirements", "status": "new — this phase" }
+    ]
+  }
+}

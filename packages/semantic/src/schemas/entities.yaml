@@ -1,0 +1,277 @@
+apiVersion: financeos.io/v1
+kind: SemanticEntityCatalog
+metadata:
+  name: financeos-core-entities
+  namespace: finance
+  version: "1.0.0"
+  description: >
+    Master catalog of all business entities modelled in the FinanceOS semantic layer.
+    Entities represent the "nouns" of the finance domain — objects that have attributes,
+    participate in relationships, and are queried through the semantic layer.
+
+entities:
+  # ════════════════════════════════════════════════════════════════════════════
+  # FINANCIAL PERIOD
+  # ════════════════════════════════════════════════════════════════════════════
+  - slug: fiscal_period
+    displayName: Fiscal Period
+    description: A defined accounting period (month, quarter, half-year, fiscal year).
+    attributes:
+      - name: period_key
+        type: string
+        description: Canonical key, e.g. "2025-Q3" or "2025-10"
+        required: true
+      - name: start_date
+        type: date
+        required: true
+      - name: end_date
+        type: date
+        required: true
+      - name: grain
+        type: enum
+        values: [daily, weekly, monthly, quarterly, semi_annual, annual]
+        required: true
+      - name: is_closed
+        type: boolean
+        description: True if the period has been formally closed and signed off.
+        required: false
+      - name: fiscal_year
+        type: integer
+        required: true
+    relationships:
+      - to: legal_entity
+        type: many_to_many
+        label: has_actuals_for
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # LEGAL ENTITY
+  # ════════════════════════════════════════════════════════════════════════════
+  - slug: legal_entity
+    displayName: Legal Entity
+    description: >
+      A legal or reporting entity within the corporate group (parent, subsidiary,
+      branch, joint venture). Used for consolidation and intercompany reconciliation.
+    attributes:
+      - name: entity_id
+        type: string
+        required: true
+      - name: entity_name
+        type: string
+        required: true
+      - name: entity_type
+        type: enum
+        values: [parent, subsidiary, branch, jv, holding, special_purpose]
+        required: true
+      - name: functional_currency
+        type: string
+        description: ISO 4217 currency code
+        required: true
+      - name: reporting_currency
+        type: string
+        description: ISO 4217 currency code for consolidated reporting
+        required: true
+      - name: consolidation_method
+        type: enum
+        values: [full_consolidation, equity_method, proportional, not_consolidated]
+        required: true
+      - name: ownership_pct
+        type: number
+        description: Parent ownership percentage (0-100)
+        required: false
+      - name: jurisdiction
+        type: string
+        description: ISO 3166 country code
+        required: false
+      - name: is_active
+        type: boolean
+        required: true
+    relationships:
+      - to: legal_entity
+        type: one_to_many
+        label: parent_of
+      - to: intercompany_transaction
+        type: one_to_many
+        label: participates_in_as_seller_or_buyer
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # METRIC
+  # ════════════════════════════════════════════════════════════════════════════
+  - slug: metric
+    displayName: Financial Metric
+    description: >
+      A measurable financial indicator defined in the semantic metric registry.
+      Metrics have values that vary by period, entity, and other dimensions.
+    attributes:
+      - name: slug
+        type: string
+        required: true
+      - name: display_name
+        type: string
+        required: true
+      - name: category
+        type: enum
+        values: [revenue, expense, margin, liquidity, leverage, efficiency, valuation,
+                 growth, budget, treasury, tax, consolidation, covenant, risk]
+        required: true
+      - name: unit
+        type: enum
+        values: [currency, percentage, ratio, count, days]
+        required: true
+    relationships:
+      - to: dimension
+        type: many_to_many
+        label: sliceable_by
+      - to: metric
+        type: many_to_many
+        label: depends_on
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # BUDGET
+  # ════════════════════════════════════════════════════════════════════════════
+  - slug: budget_model
+    displayName: Budget Model
+    description: >
+      A versioned financial plan (original budget, revised forecast, rolling forecast)
+      covering one or more fiscal periods. Serves as the baseline for variance analysis.
+    attributes:
+      - name: model_id
+        type: string
+        required: true
+      - name: version_label
+        type: string
+        description: e.g. "FY2026-OB", "FY2026-RF1"
+        required: true
+      - name: model_type
+        type: enum
+        values: [original_budget, revised_forecast, rolling_forecast, long_range_plan]
+        required: true
+      - name: fiscal_year
+        type: integer
+        required: true
+      - name: prepared_by
+        type: string
+        required: false
+      - name: approved_by
+        type: string
+        required: false
+      - name: approved_at
+        type: datetime
+        required: false
+      - name: is_active
+        type: boolean
+        required: true
+      - name: includes_entities
+        type: array
+        items: string
+        description: List of entity_ids covered by this budget model
+    relationships:
+      - to: legal_entity
+        type: many_to_many
+        label: budgets_for
+      - to: fiscal_period
+        type: many_to_many
+        label: covers
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # INTERCOMPANY TRANSACTION
+  # ════════════════════════════════════════════════════════════════════════════
+  - slug: intercompany_transaction
+    displayName: Intercompany Transaction
+    description: >
+      A financial transaction between two entities in the consolidated group.
+      Must be eliminated on consolidation. Subject to transfer pricing rules.
+    attributes:
+      - name: transaction_id
+        type: string
+        required: true
+      - name: transaction_type
+        type: enum
+        values: [loan, interest, management_fee, dividend, service_charge,
+                 product_sale, asset_transfer, guarantee_fee]
+        required: true
+      - name: seller_entity_id
+        type: string
+        required: true
+      - name: buyer_entity_id
+        type: string
+        required: true
+      - name: amount_seller_currency
+        type: number
+        required: true
+      - name: seller_currency
+        type: string
+        required: true
+      - name: amount_reporting_currency
+        type: number
+        required: true
+      - name: transaction_date
+        type: date
+        required: true
+      - name: matched
+        type: boolean
+        description: True if buyer and seller records agree within tolerance.
+        required: true
+      - name: elimination_amount
+        type: number
+        required: false
+    relationships:
+      - to: legal_entity
+        type: many_to_one
+        label: recorded_by_seller
+      - to: legal_entity
+        type: many_to_one
+        label: recorded_by_buyer
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # COVENANT
+  # ════════════════════════════════════════════════════════════════════════════
+  - slug: debt_covenant
+    displayName: Debt Covenant
+    description: >
+      A financial restriction or maintenance covenant contained in a credit agreement
+      or bond indenture. Breach may trigger default, acceleration, or waiver process.
+    attributes:
+      - name: covenant_id
+        type: string
+        required: true
+      - name: covenant_name
+        type: string
+        required: true
+      - name: covenant_type
+        type: enum
+        values: [maintenance, incurrence, reporting, affirmative, negative]
+        required: true
+      - name: metric_slug
+        type: string
+        description: The SemanticMetric slug being tested
+        required: true
+      - name: threshold_value
+        type: number
+        required: true
+      - name: threshold_direction
+        type: enum
+        values: [max, min, exact]
+        required: true
+      - name: test_frequency
+        type: enum
+        values: [monthly, quarterly, semi_annual, annual, on_demand]
+        required: true
+      - name: credit_agreement_ref
+        type: string
+        required: false
+      - name: lender_name
+        type: string
+        required: false
+      - name: waiver_available
+        type: boolean
+        required: false
+      - name: cure_period_days
+        type: integer
+        required: false
+      - name: is_active
+        type: boolean
+        required: true
+    relationships:
+      - to: metric
+        type: many_to_one
+        label: tests_metric

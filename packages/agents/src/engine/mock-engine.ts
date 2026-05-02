@@ -131,6 +131,68 @@ const MOCK_RUN_SPECS: Record<WorkflowType, MockRunSpec> = {
     exceptionSeverity: "medium",
     toolCount: 5,
   },
+  budget_management: {
+    title: "Q1 FY2026 Budget Variance — Consolidated",
+    fiscalPeriod: "Q1 FY2026",
+    status: "awaiting_approval",
+    currentState: "awaiting_human_review",
+    confidence: 0.86,
+    outputSummary:
+      "Revenue miss: $700K (6.7% unfavourable) — 3 enterprise deals slipped to Q2. R&D headcount $250K favourable (delayed backfills). 2 material variances require commentary approval. Reforecast not recommended at this stage.",
+    hasApprovals: true,
+    hasExceptions: false,
+    toolCount: 5,
+  },
+  treasury_management: {
+    title: "Daily Cash Position — 2026-05-01",
+    fiscalPeriod: "May-2026",
+    status: "completed",
+    currentState: "complete",
+    confidence: 0.97,
+    outputSummary:
+      "Unrestricted cash: $38.5M. Runway: 14.2 months. Alert level: OK. 0 covenant breaches. Current ratio watch: 1.35x vs 1.20x covenant (12.5% headroom). No sweep instructions required.",
+    hasApprovals: false,
+    hasExceptions: false,
+    toolCount: 4,
+  },
+  tax_provision: {
+    title: "Q1 FY2026 Tax Provision — ASC 740 ETR Review",
+    fiscalPeriod: "Q1 FY2026",
+    status: "awaiting_human",
+    currentState: "awaiting_tax_director_review",
+    confidence: 0.81,
+    outputSummary:
+      "ETR: 31.2% vs 21.0% statutory (+10.2pp). Key drivers: state taxes (+4.1pp), SBC disallowance (+3.8pp), R&D credits (−2.4pp), non-deductible items (+4.7pp). Total provision: $1.24M. Awaiting Tax Director review.",
+    hasApprovals: false,
+    hasExceptions: true,
+    exceptionSeverity: "medium",
+    toolCount: 6,
+  },
+  consolidation: {
+    title: "Q1 FY2026 Group Consolidation — 3 Entities",
+    fiscalPeriod: "Q1 FY2026",
+    status: "awaiting_human",
+    currentState: "awaiting_ic_resolution",
+    confidence: 0.74,
+    outputSummary:
+      "IC mismatch: $85K (Parent management fee vs Subsidiary A). Consolidation blocked pending human resolution. Eliminations drafted for $4.2M matched IC transactions. Awaiting Controller.",
+    hasApprovals: false,
+    hasExceptions: true,
+    exceptionSeverity: "high",
+    toolCount: 7,
+  },
+  covenant_monitoring: {
+    title: "Q1 FY2026 Covenant Test — Consolidated Entity",
+    fiscalPeriod: "Q1 FY2026",
+    status: "completed",
+    currentState: "complete",
+    confidence: 0.95,
+    outputSummary:
+      "Net leverage: 1.8x (limit 4.0x, 55% headroom — compliant). DSCR: 2.4x (min 1.25x, 92% headroom — compliant). Current ratio: 1.35x (min 1.2x, 12.5% headroom — watch). CFO certification pending.",
+    hasApprovals: true,
+    hasExceptions: false,
+    toolCount: 5,
+  },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

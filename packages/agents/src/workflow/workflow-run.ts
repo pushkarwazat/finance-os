@@ -11,6 +11,11 @@ export const WorkflowTypeSchema = z.enum([
   "ar_collections",
   "ap_invoice_research",
   "policy_compliance",
+  "budget_management",
+  "treasury_management",
+  "tax_provision",
+  "consolidation",
+  "covenant_monitoring",
 ]);
 export type WorkflowType = z.infer<typeof WorkflowTypeSchema>;
 

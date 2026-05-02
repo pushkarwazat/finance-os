@@ -1,0 +1,263 @@
+apiVersion: financeos.io/v1
+kind: SemanticSynonymMap
+metadata:
+  name: financeos-core-synonyms
+  namespace: finance
+  version: "1.0.0"
+  description: >
+    Synonym and alias map used by the semantic analytics query planner to normalise
+    natural-language user queries to canonical metric and dimension slugs.
+    Add entries here when users consistently phrase queries in a way that doesn't match
+    the canonical slug.
+
+synonyms:
+  # ── Revenue ──────────────────────────────────────────────────────────────────
+  - canonical: arr
+    aliases:
+      - annual recurring revenue
+      - annualised revenue
+      - annualized revenue
+      - yearly ARR
+      - total ARR
+      - ARR balance
+
+  - canonical: mrr
+    aliases:
+      - monthly recurring revenue
+      - monthly revenue run rate
+      - monthly ARR
+      - run rate revenue
+      - MRR balance
+
+  - canonical: net_revenue_retention
+    aliases:
+      - NRR
+      - net dollar retention
+      - NDR
+      - dollar-based net retention
+      - dollar retention rate
+      - net retention
+
+  - canonical: gross_revenue_retention
+    aliases:
+      - GRR
+      - gross retention
+      - gross dollar retention
+      - logo retention (approximate; note logo ≠ dollar)
+
+  # ── Margin ───────────────────────────────────────────────────────────────────
+  - canonical: gross_margin
+    aliases:
+      - GM %
+      - gross profit margin
+      - gross margin percentage
+      - gross margin rate
+
+  - canonical: ebitda
+    aliases:
+      - EBITDA dollars
+      - operating cash earnings
+      - adjusted EBITDA (note: may differ — flag for clarification)
+
+  - canonical: ebitda_margin
+    aliases:
+      - EBITDA %
+      - EBITDA margin percentage
+      - adjusted EBITDA margin
+
+  - canonical: net_income
+    aliases:
+      - bottom line
+      - net profit
+      - net earnings
+      - after-tax income
+      - profit
+
+  # ── Expense ───────────────────────────────────────────────────────────────────
+  - canonical: opex
+    aliases:
+      - operating expenses
+      - operating costs
+      - total opex
+      - cash opex
+
+  - canonical: cogs
+    aliases:
+      - cost of revenue
+      - cost of sales
+      - COR
+      - direct costs
+
+  - canonical: headcount_cost
+    aliases:
+      - people costs
+      - compensation expense
+      - total comp
+      - salary expense
+      - payroll expense
+      - labour cost
+      - labor cost
+
+  # ── Liquidity ─────────────────────────────────────────────────────────────────
+  - canonical: cash_and_equivalents
+    aliases:
+      - cash position
+      - cash balance
+      - unrestricted cash
+      - cash on hand
+      - end-of-period cash
+      - EOP cash
+
+  - canonical: free_cash_flow
+    aliases:
+      - FCF
+      - free cash generation
+      - net cash after capex
+      - unlevered free cash flow (note: differs — flag)
+
+  - canonical: runway_months
+    aliases:
+      - months of runway
+      - cash runway
+      - burn runway
+      - months to zero
+      - runway
+
+  - canonical: current_ratio
+    aliases:
+      - liquidity ratio
+      - short-term coverage ratio
+
+  # ── Leverage ──────────────────────────────────────────────────────────────────
+  - canonical: leverage_ratio
+    aliases:
+      - net leverage
+      - net debt to EBITDA
+      - debt leverage
+      - total leverage
+      - total debt / EBITDA
+
+  - canonical: debt_service_coverage
+    aliases:
+      - DSCR
+      - debt coverage ratio
+      - interest coverage (approximate — technically different)
+      - debt service ratio
+
+  # ── Budget ────────────────────────────────────────────────────────────────────
+  - canonical: budget_variance
+    aliases:
+      - variance to budget
+      - vs budget
+      - vs plan
+      - budget delta
+      - actual vs budget
+      - A vs B
+
+  - canonical: budget_variance_pct
+    aliases:
+      - variance %
+      - budget miss %
+      - % vs plan
+      - percentage variance
+
+  - canonical: forecast_accuracy
+    aliases:
+      - forecast precision
+      - forecast quality
+      - prediction accuracy
+
+  # ── Treasury ──────────────────────────────────────────────────────────────────
+  - canonical: days_sales_outstanding
+    aliases:
+      - DSO
+      - days receivable
+      - collection days
+      - average collection period
+
+  - canonical: days_payable_outstanding
+    aliases:
+      - DPO
+      - days payable
+      - payment days
+      - average payment period
+
+  - canonical: cash_conversion_cycle
+    aliases:
+      - CCC
+      - cash cycle
+      - operating cycle (approximate)
+
+  # ── Tax ───────────────────────────────────────────────────────────────────────
+  - canonical: effective_tax_rate
+    aliases:
+      - ETR
+      - effective rate
+      - book tax rate
+      - income tax rate
+
+  - canonical: etr_bridge
+    aliases:
+      - rate reconciliation
+      - ETR reconciliation
+      - tax rate bridge
+      - statutory to effective reconciliation
+
+  # ── Efficiency ────────────────────────────────────────────────────────────────
+  - canonical: revenue_per_fte
+    aliases:
+      - revenue per employee
+      - revenue per head
+      - productivity ratio
+
+  - canonical: magic_number
+    aliases:
+      - SaaS magic number
+      - GTM efficiency ratio
+      - S&M efficiency
+
+  - canonical: cac
+    aliases:
+      - customer acquisition cost
+      - cost per acquisition
+      - CPA
+
+  - canonical: ltv
+    aliases:
+      - customer lifetime value
+      - CLTV
+      - LTV:CAC ratio (note: differs — flag)
+      - lifetime value
+
+# ── Dimension value aliases ─────────────────────────────────────────────────
+dimensionAliases:
+  fiscalPeriod:
+    - alias: "this quarter"
+      canonical: current_fiscal_quarter
+      requiresContextResolution: true
+    - alias: "last quarter"
+      canonical: prior_fiscal_quarter
+      requiresContextResolution: true
+    - alias: "this year"
+      canonical: current_fiscal_year
+      requiresContextResolution: true
+    - alias: "last year"
+      canonical: prior_fiscal_year
+      requiresContextResolution: true
+    - alias: "YTD"
+      canonical: year_to_date
+      requiresContextResolution: true
+    - alias: "MTD"
+      canonical: month_to_date
+      requiresContextResolution: true
+
+  entity:
+    - alias: "the company"
+      canonical: consolidated
+      requiresContextResolution: false
+    - alias: "group"
+      canonical: consolidated
+      requiresContextResolution: false
+    - alias: "parent"
+      canonical: parent_entity
+      requiresContextResolution: false

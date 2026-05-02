@@ -1,0 +1,555 @@
+apiVersion: financeos.io/v1
+kind: SemanticMetricBundle
+metadata:
+  name: financeos-budget-treasury-tax-metrics
+  namespace: finance
+  version: "1.0.0"
+  description: >
+    Semantic metric definitions for the budget management, treasury/cash, and tax provision
+    sub-domains. All metrics follow the SemanticMetric schema (financeos.io/v1).
+    Thresholds marked TODO:CONFIRM must be validated with Finance Controller before go-live.
+
+metrics:
+  # ════════════════════════════════════════════════════════════════════════════
+  # BUDGET
+  # ════════════════════════════════════════════════════════════════════════════
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: budget-variance-revenue
+      slug: budget_variance_revenue
+      namespace: finance
+      labels:
+        domain: budget
+        criticality: high
+    spec:
+      displayName: Revenue Budget Variance
+      description: >
+        Actual revenue minus budgeted revenue for the period. Positive = favourable.
+        Material threshold: $50,000 or 5% (TODO:CONFIRM).
+      category: budget
+      unit: currency
+      formula: "actual_revenue - budget_revenue"
+      dependencies: [revenue, budget_version]
+      dataSource:
+        warehouse: snowflake
+        table: fct_budget_actuals
+        column: revenue_variance_usd
+        grain: monthly
+      aggregation: sum
+      thresholds:
+        warning: -50000
+        critical: -250000
+        direction: higher_is_better
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [budget, revenue, variance, fpa]
+      owner: fpa_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: budget-variance-opex
+      slug: budget_variance_opex
+      namespace: finance
+      labels:
+        domain: budget
+        criticality: high
+    spec:
+      displayName: OpEx Budget Variance
+      description: >
+        Actual operating expenses minus budgeted operating expenses. Negative = favourable
+        (spending below budget). Material threshold: $50,000 or 5% (TODO:CONFIRM).
+      category: budget
+      unit: currency
+      formula: "actual_opex - budget_opex"
+      dependencies: [opex, budget_version]
+      dataSource:
+        warehouse: snowflake
+        table: fct_budget_actuals
+        column: opex_variance_usd
+        grain: monthly
+      aggregation: sum
+      thresholds:
+        warning: 50000
+        critical: 250000
+        direction: lower_is_better
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [budget, opex, variance, fpa]
+      owner: fpa_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: budget-variance-ebitda
+      slug: budget_variance_ebitda
+      namespace: finance
+      labels:
+        domain: budget
+        criticality: high
+    spec:
+      displayName: EBITDA Budget Variance
+      description: >
+        Actual EBITDA minus budgeted EBITDA. Positive = favourable.
+      category: budget
+      unit: currency
+      formula: "actual_ebitda - budget_ebitda"
+      dependencies: [ebitda, budget_version]
+      dataSource:
+        warehouse: snowflake
+        table: fct_budget_actuals
+        column: ebitda_variance_usd
+        grain: monthly
+      aggregation: sum
+      thresholds:
+        warning: -50000
+        critical: -200000
+        direction: higher_is_better
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [budget, ebitda, variance, fpa]
+      owner: fpa_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: forecast-accuracy-rate
+      slug: forecast_accuracy_rate
+      namespace: finance
+      labels:
+        domain: budget
+        criticality: medium
+    spec:
+      displayName: Forecast Accuracy Rate
+      description: >
+        Percentage of line-item forecasts that came within ±5% of actual results.
+        Tracks FP&A process quality over time.
+      category: budget
+      unit: percentage
+      formula: "1 - ABS(actual - forecast) / NULLIF(ABS(actual), 0)"
+      dependencies: []
+      dataSource:
+        warehouse: snowflake
+        table: fct_forecast_accuracy
+        column: accuracy_rate
+        grain: monthly
+      aggregation: avg
+      thresholds:
+        warning: 0.80
+        critical: 0.70
+        direction: higher_is_better
+      formatting:
+        suffix: "%"
+        decimals: 1
+        abbreviate: false
+      tags: [budget, forecast, quality, fpa]
+      owner: fpa_team
+      reviewCycle: quarterly
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # TREASURY
+  # ════════════════════════════════════════════════════════════════════════════
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: cash-position-eop
+      slug: cash_position_eop
+      namespace: finance
+      labels:
+        domain: treasury
+        criticality: critical
+    spec:
+      displayName: Cash Position (End of Period)
+      description: >
+        Unrestricted cash and cash equivalents at period-end across all operating bank accounts.
+        Excludes restricted cash and short-term investments unless specified.
+        Threshold: below $25M triggers warning; below $10M triggers critical (TODO:CONFIRM).
+      category: liquidity
+      unit: currency
+      dependencies: [cash_and_equivalents]
+      dataSource:
+        warehouse: snowflake
+        table: fct_treasury_cash
+        column: unrestricted_cash_usd
+        grain: daily
+      aggregation: last
+      thresholds:
+        warning: 25000000
+        critical: 10000000
+        direction: higher_is_better
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [treasury, cash, liquidity, critical]
+      owner: treasury_team
+      reviewCycle: weekly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: net-monthly-burn
+      slug: net_monthly_burn
+      namespace: finance
+      labels:
+        domain: treasury
+        criticality: high
+    spec:
+      displayName: Net Monthly Burn Rate
+      description: >
+        Average monthly decrease in unrestricted cash over the trailing 3 months.
+        Positive burn = cash outflow > inflow (pre-profitability context).
+      category: liquidity
+      unit: currency
+      formula: "(cash_start_period - cash_end_period) / 3 (trailing 3-month average)"
+      dependencies: [cash_position_eop, free_cash_flow]
+      dataSource:
+        warehouse: snowflake
+        table: fct_treasury_cash
+        column: net_burn_rate_usd
+        grain: monthly
+      aggregation: avg
+      thresholds:
+        warning: 5000000
+        critical: 10000000
+        direction: lower_is_better
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [treasury, burn, liquidity]
+      owner: treasury_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: cash-runway-months
+      slug: cash_runway_months
+      namespace: finance
+      labels:
+        domain: treasury
+        criticality: critical
+    spec:
+      displayName: Cash Runway (Months)
+      description: >
+        Months of runway at the current net burn rate. Critical if < 6 months.
+      category: liquidity
+      unit: ratio
+      formula: "cash_position_eop / net_monthly_burn"
+      dependencies: [cash_position_eop, net_monthly_burn]
+      dataSource:
+        warehouse: snowflake
+        table: fct_treasury_cash
+        column: runway_months
+        grain: monthly
+      aggregation: last
+      thresholds:
+        warning: 12
+        critical: 6
+        direction: higher_is_better
+      formatting:
+        suffix: " mo"
+        decimals: 1
+        abbreviate: false
+      tags: [treasury, runway, liquidity, critical]
+      owner: treasury_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: accounts-receivable-balance
+      slug: ar_balance
+      namespace: finance
+      labels:
+        domain: treasury
+        criticality: high
+    spec:
+      displayName: Accounts Receivable Balance
+      description: >
+        Gross AR balance at period-end before allowance for doubtful accounts.
+      category: liquidity
+      unit: currency
+      dataSource:
+        warehouse: snowflake
+        table: fct_ar_aging
+        column: gross_ar_usd
+        grain: monthly
+      aggregation: last
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [treasury, ar, receivables, working_capital]
+      owner: ar_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: days-sales-outstanding
+      slug: days_sales_outstanding
+      namespace: finance
+      labels:
+        domain: treasury
+        criticality: high
+    spec:
+      displayName: Days Sales Outstanding (DSO)
+      description: >
+        Average days to collect payment. Higher DSO increases working capital needs.
+        Threshold: >45 days warning; >60 days critical (TODO:CONFIRM).
+      category: efficiency
+      unit: days
+      formula: "(AR Balance / Revenue) * Days in Period"
+      dependencies: [ar_balance]
+      dataSource:
+        warehouse: snowflake
+        table: fct_ar_aging
+        column: dso_days
+        grain: monthly
+      aggregation: avg
+      thresholds:
+        warning: 45
+        critical: 60
+        direction: lower_is_better
+      formatting:
+        suffix: " days"
+        decimals: 1
+        abbreviate: false
+      tags: [treasury, ar, dso, working_capital, efficiency]
+      owner: ar_team
+      reviewCycle: monthly
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # TAX
+  # ════════════════════════════════════════════════════════════════════════════
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: effective-tax-rate
+      slug: effective_tax_rate
+      namespace: finance
+      labels:
+        domain: tax
+        criticality: high
+    spec:
+      displayName: Effective Tax Rate (ETR)
+      description: >
+        Income tax expense as a percentage of pre-tax income for the period.
+        Significant deviation from statutory rate (21% US federal) requires ETR
+        bridge explanation. Threshold: >5pp deviation triggers review (TODO:CONFIRM).
+      category: tax
+      unit: percentage
+      formula: "income_tax_expense / NULLIF(pre_tax_income, 0)"
+      dependencies: []
+      dataSource:
+        warehouse: snowflake
+        table: fct_tax_provision
+        column: effective_tax_rate
+        grain: quarterly
+      aggregation: last
+      thresholds:
+        warning: 0.30
+        critical: 0.40
+        direction: lower_is_better
+      formatting:
+        suffix: "%"
+        decimals: 1
+        abbreviate: false
+      tags: [tax, etr, provision, asc740]
+      owner: tax_team
+      reviewCycle: quarterly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: tax-provision-amount
+      slug: tax_provision_amount
+      namespace: finance
+      labels:
+        domain: tax
+        criticality: high
+    spec:
+      displayName: Tax Provision (Current + Deferred)
+      description: >
+        Total income tax provision including current period tax payable and deferred
+        tax expense/benefit. Prepared under ASC 740.
+      category: tax
+      unit: currency
+      formula: "current_tax_expense + deferred_tax_expense"
+      dependencies: []
+      dataSource:
+        warehouse: snowflake
+        table: fct_tax_provision
+        column: total_tax_provision_usd
+        grain: quarterly
+      aggregation: sum
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [tax, provision, asc740]
+      owner: tax_team
+      reviewCycle: quarterly
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # CONSOLIDATION
+  # ════════════════════════════════════════════════════════════════════════════
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: consolidated-revenue
+      slug: consolidated_revenue
+      namespace: finance
+      labels:
+        domain: consolidation
+        criticality: critical
+    spec:
+      displayName: Consolidated Revenue
+      description: >
+        Group-level revenue after intercompany eliminations. Includes all subsidiaries
+        that are fully consolidated under ASC 810.
+      category: revenue
+      unit: currency
+      formula: "SUM(entity_revenue) - SUM(intercompany_revenue_eliminations)"
+      dependencies: [revenue, intercompany_eliminations]
+      dataSource:
+        warehouse: snowflake
+        table: fct_consolidation
+        column: consolidated_revenue_usd
+        grain: monthly
+      aggregation: sum
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [consolidation, revenue, group, asc810]
+      owner: controller_team
+      reviewCycle: monthly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: intercompany-elimination-balance
+      slug: ic_elimination_balance
+      namespace: finance
+      labels:
+        domain: consolidation
+        criticality: high
+    spec:
+      displayName: Intercompany Elimination Balance
+      description: >
+        Total intercompany balances subject to elimination at period-end.
+        Should net to zero after a successful consolidation run.
+        Non-zero balance indicates open intercompany mismatches requiring resolution.
+      category: consolidation
+      unit: currency
+      dataSource:
+        warehouse: snowflake
+        table: fct_intercompany
+        column: uneliminated_balance_usd
+        grain: monthly
+      aggregation: sum
+      thresholds:
+        warning: 10000
+        critical: 50000
+        direction: lower_is_better
+      formatting:
+        prefix: "$"
+        decimals: 0
+        abbreviate: true
+      tags: [consolidation, intercompany, elimination]
+      owner: controller_team
+      reviewCycle: monthly
+
+  # ════════════════════════════════════════════════════════════════════════════
+  # COVENANT
+  # ════════════════════════════════════════════════════════════════════════════
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: net-leverage-ratio
+      slug: net_leverage_ratio
+      namespace: finance
+      labels:
+        domain: covenant
+        criticality: critical
+    spec:
+      displayName: Net Leverage Ratio
+      description: >
+        Net Debt divided by LTM EBITDA. Common debt covenant metric.
+        Covenant threshold varies by credit agreement (TODO:CONFIRM — check credit agreement).
+        Typically ≤ 3.0x warning; ≤ 4.0x covenant limit.
+      category: leverage
+      unit: ratio
+      formula: "(total_debt - cash_and_equivalents) / ltm_ebitda"
+      dependencies: [ebitda, cash_and_equivalents]
+      dataSource:
+        warehouse: snowflake
+        table: fct_covenant_metrics
+        column: net_leverage_ratio
+        grain: quarterly
+      aggregation: last
+      thresholds:
+        warning: 3.0
+        critical: 4.0
+        direction: lower_is_better
+      formatting:
+        suffix: "x"
+        decimals: 2
+        abbreviate: false
+      tags: [covenant, leverage, debt, critical]
+      owner: treasury_team
+      reviewCycle: quarterly
+
+  - apiVersion: financeos.io/v1
+    kind: SemanticMetric
+    metadata:
+      name: debt-service-coverage-ratio
+      slug: dscr
+      namespace: finance
+      labels:
+        domain: covenant
+        criticality: critical
+    spec:
+      displayName: Debt Service Coverage Ratio (DSCR)
+      description: >
+        EBITDA divided by total debt service (interest + scheduled principal).
+        Covenant minimum typically ≥ 1.25x (TODO:CONFIRM — check credit agreement).
+      category: leverage
+      unit: ratio
+      formula: "ltm_ebitda / (interest_expense + scheduled_principal_repayment)"
+      dependencies: [ebitda]
+      dataSource:
+        warehouse: snowflake
+        table: fct_covenant_metrics
+        column: dscr
+        grain: quarterly
+      aggregation: last
+      thresholds:
+        warning: 1.5
+        critical: 1.25
+        direction: higher_is_better
+      formatting:
+        suffix: "x"
+        decimals: 2
+        abbreviate: false
+      tags: [covenant, leverage, dscr, critical]
+      owner: treasury_team
+      reviewCycle: quarterly

@@ -1,0 +1,196 @@
+apiVersion: financeos.io/v1
+kind: SemanticDimensionCatalog
+metadata:
+  name: financeos-core-dimensions
+  namespace: finance
+  version: "1.0.0"
+  description: >
+    Master catalog of all query dimensions supported by the FinanceOS semantic layer.
+    Dimensions are used to slice and filter metrics. The query planner resolves
+    user-supplied dimension values through the synonym map before constructing SQL.
+
+dimensions:
+  # ── Time ──────────────────────────────────────────────────────────────────────
+  - slug: fiscal_period
+    displayName: Fiscal Period
+    description: The fiscal reporting period for the query (month, quarter, half-year, year).
+    type: temporal
+    grain: monthly
+    allowedValues:
+      - pattern: "^[0-9]{4}-(Q[1-4]|H[12]|[0-9]{2}|FY)$"
+        description: "e.g. 2025-Q3, 2025-H1, 2025-10, 2025-FY"
+    requiresContextResolution:
+      - current_fiscal_quarter
+      - prior_fiscal_quarter
+      - current_fiscal_year
+      - prior_fiscal_year
+      - year_to_date
+      - month_to_date
+    mandatory: true
+
+  - slug: comparison_period
+    displayName: Comparison Period
+    description: A secondary period for year-over-year or period-over-period comparisons.
+    type: temporal
+    grain: monthly
+    mandatory: false
+
+  # ── Entity ────────────────────────────────────────────────────────────────────
+  - slug: entity
+    displayName: Legal Entity / Business Unit
+    description: >
+      The legal entity or business unit scope for the query.
+      Use "consolidated" for group-level numbers including intercompany eliminations.
+    type: categorical
+    mandatory: false
+    defaultValue: consolidated
+    allowedValues:
+      - consolidated
+      - parent_entity
+      - subsidiary_a
+      - subsidiary_b
+      - segment_emea
+      - segment_americas
+      - segment_apac
+    notes: >
+      TODO:CONFIRM — entity list must be populated from the customer's chart-of-entities.
+      Default "consolidated" is always safe.
+
+  - slug: department
+    displayName: Department / Cost Centre
+    description: The organisational cost centre or department for expense-side queries.
+    type: categorical
+    mandatory: false
+    allowedValues:
+      - all
+      - engineering
+      - sales
+      - marketing
+      - customer_success
+      - finance
+      - g_and_a
+      - product
+      - legal
+      - hr
+
+  - slug: gl_account
+    displayName: GL Account
+    description: General Ledger account code or account group for drill-down queries.
+    type: categorical
+    mandatory: false
+    notes: >
+      GL account taxonomy must be configured per customer chart of accounts.
+      Query planner will reject unrecognised account codes.
+
+  # ── Product / Revenue ─────────────────────────────────────────────────────────
+  - slug: revenue_stream
+    displayName: Revenue Stream
+    description: The product or revenue line (subscription, professional services, usage, etc.).
+    type: categorical
+    mandatory: false
+    allowedValues:
+      - subscription
+      - professional_services
+      - usage
+      - one_time
+      - support
+      - marketplace
+      - other
+
+  - slug: customer_segment
+    displayName: Customer Segment
+    description: The customer tier or segment for ARR and cohort analyses.
+    type: categorical
+    mandatory: false
+    allowedValues:
+      - enterprise
+      - mid_market
+      - smb
+      - strategic
+      - all
+
+  - slug: geo
+    displayName: Geography
+    description: The geographic region or country for revenue and cost allocation.
+    type: categorical
+    mandatory: false
+    allowedValues:
+      - global
+      - north_america
+      - emea
+      - apac
+      - latam
+
+  # ── Budget ────────────────────────────────────────────────────────────────────
+  - slug: budget_version
+    displayName: Budget Version
+    description: >
+      The budget or forecast version to use for budget vs actual comparisons.
+      Must match a version label in the budget model document store.
+    type: categorical
+    mandatory: false
+    defaultValue: latest_approved
+    examples:
+      - FY2026-OB
+      - FY2026-RF1
+      - FY2026-RF2
+      - latest_approved
+    notes: >
+      TODO:CONFIRM — version labels are customer-specific. FP&A team to maintain canonical list.
+
+  # ── Intercompany ──────────────────────────────────────────────────────────────
+  - slug: intercompany_pair
+    displayName: Intercompany Entity Pair
+    description: >
+      The intercompany transaction pair for intercompany reconciliation queries.
+      Format: "seller-entity:buyer-entity".
+    type: categorical
+    mandatory: false
+    notes: >
+      Intercompany pairs must be registered in the entity master before use.
+
+  # ── Audit / Governance ────────────────────────────────────────────────────────
+  - slug: control_framework
+    displayName: Control Framework
+    description: The internal control framework being referenced (SOX, COSO, COBIT).
+    type: categorical
+    mandatory: false
+    allowedValues:
+      - sox
+      - coso
+      - cobit
+      - internal
+      - iso27001
+
+  - slug: risk_rating
+    displayName: Risk Rating
+    description: The risk severity level for audit and exception queries.
+    type: categorical
+    mandatory: false
+    allowedValues:
+      - high
+      - medium
+      - low
+      - informational
+
+# ── Join map ─────────────────────────────────────────────────────────────────
+joins:
+  - from: fiscal_period
+    to: entity
+    type: many_to_many
+    description: Any metric can be sliced by both period and entity simultaneously.
+
+  - from: fiscal_period
+    to: department
+    type: many_to_many
+    description: Period + department drill-down for expense metrics.
+
+  - from: entity
+    to: intercompany_pair
+    type: one_to_many
+    description: An entity participates in many intercompany pairs as buyer or seller.
+
+  - from: budget_version
+    to: fiscal_period
+    type: many_to_one
+    description: A budget version covers one or more fiscal periods.

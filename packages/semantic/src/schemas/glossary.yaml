@@ -1,0 +1,377 @@
+apiVersion: financeos.io/v1
+kind: SemanticGlossary
+metadata:
+  name: financeos-core-glossary
+  namespace: finance
+  version: "1.0.0"
+  description: >
+    Authoritative glossary of financial terms for the FinanceOS semantic layer.
+    All metric slugs, dimension values, and UI labels must align with terms defined here.
+    Flag any definition labelled TODO:CONFIRM before production go-live.
+
+terms:
+  # ── Revenue ──────────────────────────────────────────────────────────────────
+  - slug: arr
+    displayName: Annual Recurring Revenue
+    abbreviation: ARR
+    category: revenue
+    definition: >
+      The annualised value of all active subscription contracts at a point in time.
+      Excludes one-time fees, professional services, and variable usage above contracted minimums.
+    formula: "SUM(monthly_recurring_revenue) × 12"
+    unit: currency
+    precision: GAAP-adjacent; not a GAAP metric
+    relatedSlugs: [mrr, net_new_arr, churn_arr]
+    tags: [saas, subscription, recurring]
+
+  - slug: mrr
+    displayName: Monthly Recurring Revenue
+    abbreviation: MRR
+    category: revenue
+    definition: >
+      The normalised monthly value of all active subscription contracts.
+      Includes base fees, committed overages, and contractual escalators.
+    formula: "ARR ÷ 12"
+    unit: currency
+    precision: GAAP-adjacent; not a GAAP metric
+    relatedSlugs: [arr, churn_mrr, expansion_mrr]
+    tags: [saas, subscription, recurring]
+
+  - slug: net_revenue_retention
+    displayName: Net Revenue Retention
+    abbreviation: NRR
+    category: revenue
+    definition: >
+      Percentage of beginning-period ARR retained and expanded by existing customers,
+      net of churn and contraction. Measures expansion efficiency.
+    formula: "(Beginning ARR + Expansion ARR − Churn ARR − Contraction ARR) ÷ Beginning ARR"
+    unit: percentage
+    precision: GAAP-adjacent
+    warningThreshold: 0.95
+    criticalThreshold: 0.85
+    direction: higher_is_better
+    tags: [saas, retention, expansion]
+
+  - slug: gross_revenue_retention
+    displayName: Gross Revenue Retention
+    abbreviation: GRR
+    category: revenue
+    definition: >
+      Percentage of beginning-period ARR retained by existing customers, excluding expansion.
+      Cannot exceed 100%.
+    formula: "(Beginning ARR − Churn ARR − Contraction ARR) ÷ Beginning ARR"
+    unit: percentage
+    tags: [saas, retention, churn]
+
+  # ── Margin ───────────────────────────────────────────────────────────────────
+  - slug: gross_margin
+    displayName: Gross Margin
+    abbreviation: GM
+    category: margin
+    definition: >
+      Revenue minus Cost of Goods Sold (COGS), expressed as a percentage of revenue.
+      COGS includes hosting, support, and third-party data costs directly attributable to delivery.
+    formula: "(Revenue − COGS) ÷ Revenue"
+    unit: percentage
+    precision: US GAAP
+    warningThreshold: 0.60
+    criticalThreshold: 0.50
+    direction: higher_is_better
+    tags: [profitability, p_and_l]
+
+  - slug: ebitda
+    displayName: Earnings Before Interest, Taxes, Depreciation and Amortisation
+    abbreviation: EBITDA
+    category: margin
+    definition: >
+      Operating profit before non-cash D&A charges, interest expense, and income taxes.
+      A proxy for operating cash generation; not a GAAP measure.
+    formula: "Net Income + Interest + Taxes + Depreciation + Amortisation"
+    unit: currency
+    precision: non-GAAP
+    tags: [profitability, leverage, non_gaap]
+
+  - slug: ebitda_margin
+    displayName: EBITDA Margin
+    category: margin
+    definition: "EBITDA expressed as a percentage of revenue."
+    formula: "EBITDA ÷ Revenue"
+    unit: percentage
+    tags: [profitability, non_gaap]
+
+  - slug: net_income
+    displayName: Net Income
+    category: margin
+    definition: >
+      Bottom-line profit after all operating expenses, interest, taxes, and non-recurring items.
+      GAAP measure per the income statement.
+    unit: currency
+    precision: US GAAP
+    tags: [gaap, p_and_l]
+
+  # ── Expense ───────────────────────────────────────────────────────────────────
+  - slug: opex
+    displayName: Operating Expenses
+    abbreviation: OpEx
+    category: expense
+    definition: >
+      All operating costs excluding COGS: R&D, S&M, G&A, and restructuring.
+      Excludes D&A unless specified.
+    unit: currency
+    precision: US GAAP
+    tags: [expense, p_and_l]
+
+  - slug: cogs
+    displayName: Cost of Goods Sold
+    abbreviation: COGS
+    category: expense
+    definition: >
+      Direct costs attributable to delivering the product or service.
+      Includes hosting, third-party data, support compensation, and professional services COGS.
+    unit: currency
+    precision: US GAAP
+    tags: [expense, p_and_l]
+
+  - slug: headcount_cost
+    displayName: Headcount Cost
+    category: expense
+    definition: >
+      Total compensation expense: base salary, bonus accruals, payroll taxes, benefits,
+      and equity compensation (stock-based compensation, SBC).
+    unit: currency
+    tags: [expense, people, headcount]
+
+  # ── Liquidity ─────────────────────────────────────────────────────────────────
+  - slug: cash_and_equivalents
+    displayName: Cash and Cash Equivalents
+    category: liquidity
+    definition: >
+      Unrestricted cash balances plus instruments with original maturity ≤ 90 days
+      (T-bills, money market funds). Reported at period-end.
+    unit: currency
+    precision: US GAAP (ASC 230)
+    tags: [balance_sheet, liquidity, treasury]
+
+  - slug: free_cash_flow
+    displayName: Free Cash Flow
+    abbreviation: FCF
+    category: liquidity
+    definition: >
+      Operating cash flow minus capital expenditure. Measures cash generation after
+      maintenance and growth capex.
+    formula: "Operating Cash Flow − CapEx"
+    unit: currency
+    precision: non-GAAP
+    tags: [cash, liquidity, non_gaap]
+
+  - slug: runway_months
+    displayName: Cash Runway (Months)
+    category: liquidity
+    definition: >
+      Months of operating expenses covered by current cash balance assuming current
+      monthly burn rate. A critical survival metric for pre-profitability companies.
+    formula: "Cash and Equivalents ÷ Monthly Net Burn"
+    unit: ratio
+    warningThreshold: 12
+    criticalThreshold: 6
+    direction: higher_is_better
+    tags: [liquidity, treasury, burn]
+
+  - slug: current_ratio
+    displayName: Current Ratio
+    category: liquidity
+    definition: >
+      Current assets divided by current liabilities. Measures short-term ability
+      to meet obligations.
+    formula: "Current Assets ÷ Current Liabilities"
+    unit: ratio
+    warningThreshold: 1.2
+    criticalThreshold: 1.0
+    direction: higher_is_better
+    tags: [liquidity, balance_sheet, covenant]
+
+  - slug: quick_ratio
+    displayName: Quick Ratio
+    abbreviation: QR
+    category: liquidity
+    definition: >
+      (Cash + Short-term Investments + Accounts Receivable) ÷ Current Liabilities.
+      More conservative than Current Ratio; excludes inventory and prepaid expenses.
+    formula: "(Cash + ST Investments + AR) ÷ Current Liabilities"
+    unit: ratio
+    tags: [liquidity, balance_sheet]
+
+  # ── Leverage ──────────────────────────────────────────────────────────────────
+  - slug: leverage_ratio
+    displayName: Net Leverage Ratio
+    category: leverage
+    definition: >
+      Net Debt (Total Debt − Cash) divided by Trailing 12-Month EBITDA.
+      Commonly used as a debt covenant metric.
+    formula: "Net Debt ÷ LTM EBITDA"
+    unit: ratio
+    warningThreshold: 3.0
+    criticalThreshold: 4.0
+    direction: lower_is_better
+    tags: [leverage, debt, covenant]
+
+  - slug: debt_service_coverage
+    displayName: Debt Service Coverage Ratio
+    abbreviation: DSCR
+    category: leverage
+    definition: >
+      Operating income available to cover scheduled debt service (principal + interest).
+      DSCR < 1.0 means the entity cannot cover debt service from operating income.
+    formula: "EBITDA ÷ (Interest Expense + Scheduled Principal)"
+    unit: ratio
+    warningThreshold: 1.5
+    criticalThreshold: 1.1
+    direction: higher_is_better
+    tags: [leverage, debt, covenant]
+
+  # ── Budget ────────────────────────────────────────────────────────────────────
+  - slug: budget_variance
+    displayName: Budget Variance
+    category: budget
+    definition: >
+      Difference between actual and budgeted amounts for a given metric and period.
+      Positive = favourable for revenue/margin; negative = unfavourable (convention depends
+      on metric direction — see thresholds).
+    formula: "Actual − Budget"
+    unit: currency
+    tags: [budget, variance, fpa]
+
+  - slug: budget_variance_pct
+    displayName: Budget Variance (%)
+    category: budget
+    definition: "Budget variance expressed as a percentage of the budget amount."
+    formula: "(Actual − Budget) ÷ |Budget|"
+    unit: percentage
+    tags: [budget, variance, fpa]
+
+  - slug: forecast_accuracy
+    displayName: Forecast Accuracy
+    category: budget
+    definition: >
+      Percentage of forecasts that fell within ±5% of actual results for the period.
+      Measures the quality of the FP&A forecasting process.
+    formula: "1 − |Actual − Forecast| ÷ |Actual|"
+    unit: percentage
+    direction: higher_is_better
+    tags: [budget, forecast, fpa, accuracy]
+
+  # ── Treasury ──────────────────────────────────────────────────────────────────
+  - slug: days_sales_outstanding
+    displayName: Days Sales Outstanding
+    abbreviation: DSO
+    category: efficiency
+    definition: >
+      Average number of days to collect payment after a sale is made.
+      Lower DSO indicates faster collection.
+    formula: "(Accounts Receivable ÷ Revenue) × Days in Period"
+    unit: days
+    warningThreshold: 45
+    criticalThreshold: 60
+    direction: lower_is_better
+    tags: [ar, collections, working_capital, efficiency]
+
+  - slug: days_payable_outstanding
+    displayName: Days Payable Outstanding
+    abbreviation: DPO
+    category: efficiency
+    definition: >
+      Average number of days a company takes to pay its suppliers.
+      Higher DPO favours working capital but must not breach payment terms.
+    formula: "(Accounts Payable ÷ COGS) × Days in Period"
+    unit: days
+    tags: [ap, payables, working_capital, efficiency]
+
+  - slug: cash_conversion_cycle
+    displayName: Cash Conversion Cycle
+    abbreviation: CCC
+    category: efficiency
+    definition: >
+      Time (in days) for cash to convert through inventory → receivables → cash.
+      CCC = DIO + DSO − DPO.
+    formula: "DIO + DSO − DPO"
+    unit: days
+    direction: lower_is_better
+    tags: [working_capital, treasury, efficiency]
+
+  # ── Tax ───────────────────────────────────────────────────────────────────────
+  - slug: effective_tax_rate
+    displayName: Effective Tax Rate
+    abbreviation: ETR
+    category: tax
+    definition: >
+      Income tax expense as a percentage of pre-tax income. Differs from the
+      statutory rate due to permanent and temporary differences.
+    formula: "Income Tax Expense ÷ Pre-Tax Income"
+    unit: percentage
+    tags: [tax, provision, asc740]
+
+  - slug: statutory_tax_rate
+    displayName: Statutory Tax Rate
+    category: tax
+    definition: >
+      The legally mandated tax rate for the primary operating jurisdiction.
+      US federal statutory rate is 21% (as of 2024). State/local rates vary.
+    unit: percentage
+    tags: [tax, statutory]
+
+  - slug: etr_bridge
+    displayName: ETR Bridge (Rate Reconciliation)
+    category: tax
+    definition: >
+      Reconciliation between the statutory tax rate and the actual ETR, itemising
+      permanent differences (stock-based comp, R&D credits, GILTI, etc.).
+    unit: percentage
+    precision: ASC 740
+    tags: [tax, provision, asc740, reconciliation]
+
+  # ── Efficiency ────────────────────────────────────────────────────────────────
+  - slug: revenue_per_fte
+    displayName: Revenue per FTE
+    category: efficiency
+    definition: >
+      Total revenue divided by average full-time equivalent headcount for the period.
+      Measures workforce productivity.
+    formula: "Revenue ÷ Average FTE"
+    unit: currency
+    direction: higher_is_better
+    tags: [efficiency, headcount, productivity]
+
+  - slug: magic_number
+    displayName: SaaS Magic Number
+    category: efficiency
+    definition: >
+      New ARR in a period divided by prior-period S&M spend. Values > 1 indicate
+      efficient go-to-market investment; < 0.5 indicates poor GTM efficiency.
+    formula: "Net New ARR × 4 ÷ Prior Quarter S&M Spend"
+    unit: ratio
+    direction: higher_is_better
+    tags: [saas, efficiency, gtm, growth]
+
+  - slug: cac
+    displayName: Customer Acquisition Cost
+    abbreviation: CAC
+    category: efficiency
+    definition: >
+      Average cost to acquire one new customer: S&M spend divided by number
+      of new customers in the period.
+    formula: "S&M Spend ÷ New Customers"
+    unit: currency
+    direction: lower_is_better
+    tags: [saas, efficiency, gtm]
+
+  - slug: ltv
+    displayName: Customer Lifetime Value
+    abbreviation: LTV
+    category: valuation
+    definition: >
+      Expected revenue from a customer over the life of the relationship.
+      LTV = (ARPU × Gross Margin) ÷ Churn Rate.
+    formula: "(ARPU × Gross Margin) ÷ Monthly Churn Rate"
+    unit: currency
+    direction: higher_is_better
+    tags: [saas, valuation, retention, efficiency]

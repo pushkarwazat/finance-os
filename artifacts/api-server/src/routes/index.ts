@@ -12,6 +12,10 @@ import semanticRouter from "./semantic.js";
 import analyticsRouter from "./analytics.js";
 import ragRouter from "./rag.js";
 import workflowsRouter from "./workflows.js";
+import budgetRouter from "./budget.js";
+import treasuryRouter from "./treasury.js";
+import consolidationRouter from "./consolidation.js";
+import requirementsRouter from "./requirements.js";
 
 const router: IRouter = Router();
 
@@ -28,5 +32,9 @@ router.use(semanticRouter);
 router.use(analyticsRouter);
 router.use(ragRouter);
 router.use(workflowsRouter);
+router.use(budgetRouter);
+router.use(treasuryRouter);
+router.use(consolidationRouter);
+router.use(requirementsRouter);
 
 export default router;

@@ -9,6 +9,13 @@ export const AgentCapabilitySchema = z.enum([
   "close_assistance",
   "governance_review",
   "benchmark_evaluation",
+  "budget_management",
+  "treasury_monitoring",
+  "cash_forecasting",
+  "tax_provision",
+  "consolidation",
+  "intercompany_reconciliation",
+  "covenant_monitoring",
 ]);
 export type AgentCapability = z.infer<typeof AgentCapabilitySchema>;
 

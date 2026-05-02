@@ -1,0 +1,91 @@
+Add a new requirement-ingestion and implementation layer to the existing FinanceOS project.
+
+Primary source document:
+https://docs.google.com/document/d/1On4xbfab_E4l4O_0G-1_I9hGNgnNVovs6OmuBhmUrh0/edit?tab=t.0
+
+Your first task:
+1. Convert the Google Doc URL into a machine-readable export URL.
+2. Attempt to retrieve the document as Markdown first using:
+   https://docs.google.com/document/d/1On4xbfab_E4l4O_0G-1_I9hGNgnNVovs6OmuBhmUrh0/export?format=md
+3. If Markdown export fails, fall back to txt or html export.
+4. Treat the document as the authoritative requirements brief for this phase of the platform.
+
+Goal:
+Read the document and map all requirements into the existing FinanceOS architecture without breaking prior modular design.
+
+You must extract and categorize:
+- business goals
+- product requirements
+- user roles
+- workflows
+- finance processes
+- data entities
+- documents/evidence sources
+- approval requirements
+- controls/governance rules
+- exception paths
+- UI requirements
+- integrations
+- explicit open questions
+- implied schema requirements
+
+Then update the project in these areas:
+- packages/semantic
+- packages/rag
+- packages/agents
+- packages/governance
+- packages/evals
+- apps/api
+- apps/web
+
+Create or update the following:
+1. requirements/
+   - source-document.md
+   - extracted-requirements.json
+   - requirements-traceability-matrix.md
+   - open-questions.md
+   - assumptions.md
+
+2. Semantic layer updates
+   - add or revise YAML schemas for any new entities, dimensions, measures, metrics, joins, synonyms, and glossary terms implied by the document
+   - add validation and test fixtures
+   - flag any metric definition that is not precise enough
+
+3. RAG layer updates
+   - add any new document classes, metadata fields, citation requirements, chunking needs, or retrieval filters implied by the document
+   - keep the retrieval layer provider-agnostic
+
+4. Agent layer updates
+   - add or revise workflow agents, task schemas, state machines, approvals, escalation paths, and output contracts based on the document
+   - keep all material accounting actions human-approved
+
+5. Governance layer updates
+   - add policy definitions, role mappings, approval thresholds, evidence requirements, audit events, and access-control tags derived from the document
+
+6. API layer updates
+   - add or revise backend contracts and endpoints required to support the document requirements
+   - do not implement live infrastructure clients
+
+7. Web UI updates
+   - add or revise placeholder pages, forms, review queues, requirement-inspection views, workflow views, and admin/governance views implied by the document
+
+8. Evaluation updates
+   - create benchmark cases and acceptance tests directly derived from the document’s stated requirements and workflows
+
+Implementation rules:
+- Do not treat the Google Doc as just reference text; convert it into schemas and implementation artifacts
+- Preserve the schema-first, enterprise-grade architecture
+- Prefer config-driven design over hardcoded logic
+- If a requirement is ambiguous, represent that ambiguity explicitly in open questions and TODO comments
+- Do not invent unsupported business logic
+- Do not connect directly to a real database, vector store, or LLM
+- Do not collapse semantic analytics and RAG into one layer
+- Every requirement should map to at least one artifact, schema, workflow, policy, or test
+
+Output required:
+- summary of document ingestion result
+- extracted requirement categories
+- files created or updated
+- traceability matrix mapping document requirements to project modules
+- list of ambiguities and unresolved questions
+- recommended next implementation order

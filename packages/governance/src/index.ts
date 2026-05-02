@@ -11,3 +11,6 @@ export * from "./environment-config.js";
 export * from "./release.js";
 export * from "./middleware.js";
 export * from "./samples.js";
+export * from "./sox-controls.js";
+export * from "./materiality.js";
+export * from "./approval-thresholds.js";

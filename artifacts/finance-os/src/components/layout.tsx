@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter"
-import { BarChart3, MessageSquare, LineChart, CheckSquare, FileText, Shield, Activity, BookOpen, Settings, Bot, ShieldAlert, AlertTriangle } from "lucide-react"
+import { BarChart3, MessageSquare, LineChart, CheckSquare, FileText, Shield, Activity, BookOpen, Settings, Bot, ShieldAlert, AlertTriangle, DollarSign, Landmark, GitMerge, ClipboardList } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
@@ -25,8 +25,12 @@ const navigation = [
   { name: "Agents", href: "/agents", icon: Bot },
   { name: "Approvals", href: "/approvals", icon: ShieldAlert },
   { name: "Exceptions", href: "/exceptions", icon: AlertTriangle },
+  { name: "Budget", href: "/budget", icon: DollarSign },
+  { name: "Treasury", href: "/treasury", icon: Landmark },
+  { name: "Consolidation", href: "/consolidation", icon: GitMerge },
   { name: "Evals", href: "/evals", icon: Activity },
   { name: "Glossary", href: "/glossary", icon: BookOpen },
+  { name: "Requirements", href: "/requirements", icon: ClipboardList },
 ]
 
 export function AppLayout({ children }: { children: React.ReactNode }) {

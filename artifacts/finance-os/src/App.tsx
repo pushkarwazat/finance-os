@@ -18,6 +18,10 @@ import { GlossaryPage } from "@/pages/glossary"
 import { AgentsPage } from "@/pages/agents"
 import { ApprovalsPage } from "@/pages/approvals"
 import { ExceptionsPage } from "@/pages/exceptions"
+import { BudgetPage } from "@/pages/budget"
+import { TreasuryPage } from "@/pages/treasury"
+import { ConsolidationPage } from "@/pages/consolidation"
+import { RequirementsInspectorPage } from "@/pages/requirements-inspector"
 
 const queryClient = new QueryClient()
 
@@ -37,6 +41,10 @@ function Router() {
         <Route path="/agents" component={AgentsPage} />
         <Route path="/approvals" component={ApprovalsPage} />
         <Route path="/exceptions" component={ExceptionsPage} />
+        <Route path="/budget" component={BudgetPage} />
+        <Route path="/treasury" component={TreasuryPage} />
+        <Route path="/consolidation" component={ConsolidationPage} />
+        <Route path="/requirements" component={RequirementsInspectorPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
