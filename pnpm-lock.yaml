@@ -728,6 +728,22 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
 
+  packages/forecasting:
+    dependencies:
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
   packages/governance:
     dependencies:
       '@financeos/shared':
@@ -744,7 +760,39 @@ importers:
         specifier: ~5.9.2
         version: 5.9.3
 
+  packages/insights:
+    dependencies:
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
   packages/rag:
+    dependencies:
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../shared
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
+  packages/reporting:
     dependencies:
       '@financeos/shared':
         specifier: workspace:*
@@ -781,6 +829,22 @@ importers:
 
   packages/shared:
     dependencies:
+      zod:
+        specifier: 'catalog:'
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
+  packages/visuals:
+    dependencies:
+      '@financeos/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: 'catalog:'
         version: 3.25.76

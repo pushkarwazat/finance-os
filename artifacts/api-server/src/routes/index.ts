@@ -16,6 +16,9 @@ import budgetRouter from "./budget.js";
 import treasuryRouter from "./treasury.js";
 import consolidationRouter from "./consolidation.js";
 import requirementsRouter from "./requirements.js";
+import reportingRouter from "./reporting.js";
+import forecastingRouter from "./forecasting.js";
+import insightsRouter from "./insights.js";
 
 const router: IRouter = Router();
 
@@ -36,5 +39,8 @@ router.use(budgetRouter);
 router.use(treasuryRouter);
 router.use(consolidationRouter);
 router.use(requirementsRouter);
+router.use(reportingRouter);
+router.use(forecastingRouter);
+router.use(insightsRouter);
 
 export default router;

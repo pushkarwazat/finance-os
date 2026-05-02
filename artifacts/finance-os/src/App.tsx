@@ -22,6 +22,17 @@ import { BudgetPage } from "@/pages/budget"
 import { TreasuryPage } from "@/pages/treasury"
 import { ConsolidationPage } from "@/pages/consolidation"
 import { RequirementsInspectorPage } from "@/pages/requirements-inspector"
+import { ExecutiveDashboardPage } from "@/pages/executive-dashboard"
+import { ReportingCenterPage } from "@/pages/reporting-center"
+import { ForecastingWorkbenchPage } from "@/pages/forecasting-workbench"
+import { ScenarioLabPage } from "@/pages/scenario-lab"
+import { AiInsightsPage } from "@/pages/ai-insights"
+import { MarginOptimizationPage } from "@/pages/margin-optimization"
+import { CostReductionPage } from "@/pages/cost-reduction"
+import { BoardPackPage } from "@/pages/board-pack"
+import { ReportBuilderPage } from "@/pages/report-builder"
+import { InsightDetailPage } from "@/pages/insight-detail"
+import { RecommendationReviewPage } from "@/pages/recommendation-review"
 
 const queryClient = new QueryClient()
 
@@ -45,6 +56,17 @@ function Router() {
         <Route path="/treasury" component={TreasuryPage} />
         <Route path="/consolidation" component={ConsolidationPage} />
         <Route path="/requirements" component={RequirementsInspectorPage} />
+        <Route path="/executive-dashboard" component={ExecutiveDashboardPage} />
+        <Route path="/reporting" component={ReportingCenterPage} />
+        <Route path="/forecasting" component={ForecastingWorkbenchPage} />
+        <Route path="/scenarios" component={ScenarioLabPage} />
+        <Route path="/ai-insights" component={AiInsightsPage} />
+        <Route path="/margin-optimization" component={MarginOptimizationPage} />
+        <Route path="/cost-reduction" component={CostReductionPage} />
+        <Route path="/board-pack" component={BoardPackPage} />
+        <Route path="/report-builder" component={ReportBuilderPage} />
+        <Route path="/insights/:id" component={InsightDetailPage} />
+        <Route path="/recommendations" component={RecommendationReviewPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

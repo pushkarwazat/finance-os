@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter"
-import { BarChart3, MessageSquare, LineChart, CheckSquare, FileText, Shield, Activity, BookOpen, Settings, Bot, ShieldAlert, AlertTriangle, DollarSign, Landmark, GitMerge, ClipboardList } from "lucide-react"
+import { BarChart3, MessageSquare, LineChart, CheckSquare, FileText, Shield, Activity, BookOpen, Settings, Bot, ShieldAlert, AlertTriangle, DollarSign, Landmark, GitMerge, ClipboardList, LayoutDashboard, FileBarChart2, TrendingUp, Layers, Lightbulb, Target, Scissors, Presentation, Hammer, ListChecks } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar"
 
 const navigation = [
+  { name: "Exec Dashboard", href: "/executive-dashboard", icon: LayoutDashboard },
   { name: "Metrics", href: "/metrics", icon: BarChart3 },
   { name: "Ask AI", href: "/ask", icon: MessageSquare },
   { name: "Variance", href: "/variance", icon: LineChart },
@@ -28,6 +29,15 @@ const navigation = [
   { name: "Budget", href: "/budget", icon: DollarSign },
   { name: "Treasury", href: "/treasury", icon: Landmark },
   { name: "Consolidation", href: "/consolidation", icon: GitMerge },
+  { name: "Reporting", href: "/reporting", icon: FileBarChart2 },
+  { name: "Forecasting", href: "/forecasting", icon: TrendingUp },
+  { name: "Scenario Lab", href: "/scenarios", icon: Layers },
+  { name: "AI Insights", href: "/ai-insights", icon: Lightbulb },
+  { name: "Margin Opt.", href: "/margin-optimization", icon: Target },
+  { name: "Cost Reduction", href: "/cost-reduction", icon: Scissors },
+  { name: "Board Pack", href: "/board-pack", icon: Presentation },
+  { name: "Report Builder", href: "/report-builder", icon: Hammer },
+  { name: "Recommendations", href: "/recommendations", icon: ListChecks },
   { name: "Evals", href: "/evals", icon: Activity },
   { name: "Glossary", href: "/glossary", icon: BookOpen },
   { name: "Requirements", href: "/requirements", icon: ClipboardList },

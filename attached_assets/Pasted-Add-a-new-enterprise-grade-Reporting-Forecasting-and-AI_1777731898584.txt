@@ -1,0 +1,459 @@
+Add a new enterprise-grade Reporting, Forecasting, and AI Insights module to the existing FinanceOS platform.
+
+Goal:
+Replace manual SQL-to-Excel reporting and forecasting workflows with a governed, visual, AI-driven reporting and planning layer that produces executive dashboards, board-ready reports, rolling forecasts, scenario models, variance narratives, anomaly detection, and AI-generated business insights with recommendations for cost reduction and margin improvement.
+
+This module must sit on top of the existing architecture:
+- semantic layer for structured metrics
+- RAG/document layer for supporting evidence and commentary grounding
+- workflow/agent layer for automation and recommendations
+- governance layer for approvals, auditability, and access control
+
+Do NOT connect to a live database, vector DB, or LLM yet.
+Build schemas, interfaces, mock adapters, UI shells, and evaluation harnesses so I can plug in the real infrastructure later.
+
+==================================================
+1. CREATE A NEW DOMAIN AREA
+==================================================
+
+Create and organize the following:
+
+- packages/reporting
+- packages/forecasting
+- packages/insights
+- packages/visuals
+
+Within these packages, create:
+- TypeScript domain models
+- Zod or equivalent validation schemas
+- YAML or JSON config definitions
+- mock repositories
+- mock planners
+- mock calculators
+- mock visualization specs
+- sample fixtures
+- tests
+
+Also update:
+- apps/api
+- apps/web
+- packages/shared
+- packages/evals
+- packages/governance
+- packages/semantic
+
+==================================================
+2. REPORTING LAYER
+==================================================
+
+Build a full reporting schema layer designed to eliminate manual SQL extracts and Excel-based finance packs.
+
+Create schemas and contracts for:
+- reporting_period
+- report_template
+- report_section
+- report_metric_binding
+- report_filter_set
+- report_dimension_group
+- report_distribution_schedule
+- report_audience
+- narrative_block
+- commentary_block
+- chart_spec
+- board_pack
+- monthly_business_review
+- weekly_flash_report
+- forecast_review_pack
+- KPI_scorecard
+- executive_summary_report
+- cost_optimization_report
+- margin_expansion_report
+
+Support report types including:
+- daily operating report
+- weekly flash
+- monthly financial package
+- board deck data pack
+- budget vs actual report
+- department spend report
+- margin waterfall report
+- revenue bridge report
+- cash flow summary
+- collections report
+- AR/AP aging intelligence
+- product/unit economics report
+- channel profitability report
+- scenario comparison report
+
+For each report support:
+- title
+- owner
+- audience
+- cadence
+- required metrics
+- allowed filters
+- approved dimensions
+- commentary requirements
+- materiality thresholds
+- variance thresholds
+- chart types
+- drilldown paths
+- evidence links
+- export modes (PDF, PPT-friendly JSON, dashboard, email summary)
+
+Build a report template engine that:
+- maps reports to semantic metrics only
+- supports reusable report sections
+- supports row-level access policies
+- supports role-specific views
+- supports versioned templates
+- supports narrative placeholders
+- supports “last refreshed” and lineage metadata
+
+==================================================
+3. FORECASTING LAYER
+==================================================
+
+Create a robust forecasting and planning schema system intended to replace spreadsheet forecasting.
+
+Build schemas for:
+- forecast_model
+- forecast_version
+- forecast_run
+- forecast_driver
+- driver_assumption
+- scenario
+- scenario_set
+- sensitivity_case
+- baseline_case
+- upside_case
+- downside_case
+- actuals_snapshot
+- plan_snapshot
+- forecast_snapshot
+- forecast_override
+- override_reason
+- confidence_band
+- seasonality_profile
+- business_calendar
+- planning_hierarchy
+- forecast_commentary
+- forecast_exception
+- forecast_approval
+
+Support these forecasting approaches:
+- rolling forecast
+- driver-based forecast
+- trend-based forecast
+- seasonal forecast
+- scenario planning
+- what-if analysis
+- budget reforecast
+- margin forecast
+- cash forecast
+- collections forecast
+- expense forecast
+- headcount-related forecast
+- revenue and volume forecast
+
+Support drivers such as:
+- pipeline
+- close rate
+- average selling price
+- customer count
+- churn
+- utilization
+- payroll
+- commission
+- claim rate
+- enrollment volume
+- retention
+- cost per lead
+- service cost per member
+- vendor spend
+- fixed vs variable cost mix
+
+For each forecast object include:
+- grain
+- time horizon
+- driver mappings
+- assumptions
+- sensitivity ranges
+- forecast method
+- confidence score
+- explainability fields
+- lineage to source metrics
+- manual override support with audit trail
+
+Build contracts for:
+- forecast generation pipeline
+- scenario comparison
+- assumption management
+- manual override workflow
+- approval flow
+- model explainability
+- error and exception handling
+
+Important:
+- Forecasts must be explainable
+- Driver assumptions must be explicit
+- Manual overrides must be tracked and auditable
+- Forecast outputs must be visual and easy to compare
+- No black-box-only forecast results
+
+==================================================
+4. AI INSIGHTS AND RECOMMENDATIONS
+==================================================
+
+Create a new AI Insights engine that goes beyond reporting and actively identifies patterns, root causes, risks, and opportunities.
+
+Build schemas for:
+- insight
+- insight_cluster
+- anomaly
+- driver_shift
+- root_cause_hypothesis
+- recommendation
+- opportunity
+- risk_flag
+- material_change
+- margin_leakage
+- cost_reduction_candidate
+- pricing_opportunity
+- efficiency_opportunity
+- business_alert
+- watchlist_item
+- recommendation_impact_estimate
+- recommendation_confidence
+- recommendation_priority
+- recommendation_status
+
+The AI Insights layer should support:
+- anomaly detection
+- root cause analysis
+- trend change detection
+- driver contribution analysis
+- correlation exploration
+- margin leakage detection
+- cost growth detection
+- pricing or mix opportunity detection
+- business-unit performance outlier analysis
+- customer/channel profitability analysis
+- spend concentration analysis
+- working capital opportunity analysis
+- operational inefficiency signals
+- recommendation generation for cost reduction and margin expansion
+
+Every recommendation must include:
+- summary
+- business rationale
+- affected metrics
+- estimated financial impact
+- supporting trends
+- supporting charts
+- required evidence
+- confidence
+- assumptions
+- recommended owner
+- urgency
+- next actions
+- approval requirement
+- explainability block
+
+Create recommendation categories such as:
+- reduce vendor spend
+- reduce acquisition cost
+- renegotiate contract class
+- improve collections
+- reduce churn
+- improve pricing discipline
+- reduce service delivery cost
+- improve staffing efficiency
+- reduce reporting latency
+- reduce non-core overhead
+- shift channel mix
+- optimize customer segment mix
+
+Also create an “Insight Narrative Generator” contract that produces:
+- executive summary
+- what changed
+- why it changed
+- so what
+- what to do next
+- what assumptions exist
+- what evidence supports it
+
+==================================================
+5. VISUALIZATION AND UX
+==================================================
+
+Create a premium executive-grade visualization layer that makes finance and operating insights extremely easy to understand.
+
+Build reusable chart and dashboard spec schemas for:
+- KPI cards
+- sparkline cards
+- trend lines
+- actual vs budget bars
+- actual vs forecast overlays
+- variance waterfalls
+- bridge charts
+- heatmaps
+- cohort charts
+- scenario comparison charts
+- stacked composition charts
+- funnel charts
+- contribution charts
+- margin waterfalls
+- cash runway chart
+- collections aging heatmap
+- spend concentration treemap
+- anomaly timeline
+- recommendation pipeline board
+- business-unit scorecards
+
+Create a visualization config system that supports:
+- title
+- subtitle
+- metric bindings
+- color logic
+- thresholds
+- annotations
+- confidence band overlays
+- drilldowns
+- tooltips
+- commentary panels
+- export-ready layout
+- board-presentation mode
+- dark/light theme
+- accessibility-friendly color choices
+
+Build UI pages in apps/web for:
+- Executive Dashboard
+- Reporting Center
+- Forecasting Workbench
+- Scenario Lab
+- AI Insights Center
+- Margin Optimization Center
+- Cost Reduction Opportunities
+- Board Pack Preview
+- Report Builder
+- Insight Detail View
+- Recommendation Review Queue
+
+UX requirements:
+- make the dashboards feel premium and enterprise-grade
+- support highly visual executive storytelling
+- support drilldown from summary to root cause
+- support narrative + chart side-by-side layouts
+- support filters without exposing raw schema complexity
+- include placeholder loading states, empty states, and review states
+- design for CFO/CEO readability, not analyst-only readability
+
+==================================================
+6. API CONTRACTS
+==================================================
+
+Add backend contracts and mock endpoints for:
+- get dashboard definitions
+- get report templates
+- generate report preview
+- run forecast
+- compare scenarios
+- generate insight feed
+- generate recommendation set
+- review recommendation
+- approve recommendation
+- export board pack
+- export monthly package
+- get narrative commentary
+- get chart specs
+- get margin analysis
+- get cost opportunity feed
+
+Use deterministic mock responses and fixtures.
+Do not implement live data queries yet.
+
+==================================================
+7. GOVERNANCE AND CONTROLS
+==================================================
+
+Extend governance to cover reporting and forecasting.
+
+Add schemas for:
+- report approval policy
+- forecast signoff workflow
+- recommendation approval policy
+- materiality threshold policy
+- variance threshold policy
+- narrative review workflow
+- export access policy
+- board-pack confidentiality policy
+
+Ensure all reports, forecasts, and recommendations support:
+- audit trail
+- user attribution
+- refresh timestamp
+- lineage metadata
+- evidence references
+- approval state
+- access tags
+- policy trace
+
+==================================================
+8. EVALUATION AND QA
+==================================================
+
+Add benchmark and testing support for:
+- report accuracy
+- metric-binding correctness
+- chart-binding correctness
+- forecast explainability completeness
+- scenario comparison correctness
+- recommendation usefulness
+- anomaly detection quality
+- narrative quality
+- abstention behavior when confidence is low
+- export readiness
+
+Create benchmark fixtures for:
+- 25 monthly reporting cases
+- 25 forecast scenarios
+- 25 anomaly/insight cases
+- 25 recommendation cases
+- 10 executive summary packs
+- 10 board pack export cases
+
+==================================================
+9. DELIVERABLES
+==================================================
+
+Output:
+1. New package structure
+2. All new schemas and interfaces
+3. Example fixtures
+4. Mock APIs
+5. UI shell pages
+6. Documentation:
+   - reporting-architecture.md
+   - forecasting-architecture.md
+   - ai-insights-architecture.md
+   - visualization-system.md
+   - reporting-to-forecasting-data-flow.md
+7. A README explaining how this module replaces manual SQL + Excel workflows for reporting and forecasting
+8. A list of integration points where real SQL warehouse, semantic engine, RAG system, and LLM providers will be plugged in later
+
+==================================================
+10. IMPLEMENTATION CONSTRAINTS
+==================================================
+
+Strictly follow these rules:
+- do not generate toy dashboards
+- do not make the forecasting logic black box
+- do not use raw SQL directly in the UI
+- do not skip auditability
+- do not blur structured metrics with document retrieval
+- do not hardcode vendor-specific BI or vector tooling
+- keep the system pluggable, governed, and enterprise-grade
+- prefer semantic bindings, config, and schemas over prompt-only behavior
+- make the visualization layer polished enough for executive review
+- make reports and forecasts explainable, drillable, and presentation-ready
