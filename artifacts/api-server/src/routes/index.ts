@@ -11,6 +11,7 @@ import agentsRouter from "./agents.js";
 import semanticRouter from "./semantic.js";
 import analyticsRouter from "./analytics.js";
 import ragRouter from "./rag.js";
+import workflowsRouter from "./workflows.js";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(agentsRouter);
 router.use(semanticRouter);
 router.use(analyticsRouter);
 router.use(ragRouter);
+router.use(workflowsRouter);
 
 export default router;

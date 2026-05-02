@@ -87,7 +87,7 @@ All data is mock/in-memory. No external DB or vector DB required. Fixtures in `a
 ## Packages Summary
 
 - `packages/shared` — finance models (Metric, Forecast, CloseTask, Document, ApprovalRequest, AuditEvent)
-- `packages/agents` — Agent, AgentSession, OrchestrationPlan, tool executor interfaces
+- `packages/agents` — Full workflow agent layer: 6 finance agents, state machines, approval/exception/action schemas, mock engine, orchestrator routing
 - `packages/semantic` — SemanticMetricYaml YAML schema, DataContract, metric registry interface
 - `packages/rag` — Full RAG layer: 7 document type schemas, chunk/citation schemas, 7-step ingestion pipeline, hybrid retrieval contracts, mock providers, 7 document fixtures + 17 chunks, 25-case eval suite, tenant isolation
 

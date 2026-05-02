@@ -15,6 +15,9 @@ import { DocumentsPage } from "@/pages/documents"
 import { GovernancePage } from "@/pages/governance"
 import { EvalsPage } from "@/pages/evals"
 import { GlossaryPage } from "@/pages/glossary"
+import { AgentsPage } from "@/pages/agents"
+import { ApprovalsPage } from "@/pages/approvals"
+import { ExceptionsPage } from "@/pages/exceptions"
 
 const queryClient = new QueryClient()
 
@@ -31,6 +34,9 @@ function Router() {
         <Route path="/governance" component={GovernancePage} />
         <Route path="/evals" component={EvalsPage} />
         <Route path="/glossary" component={GlossaryPage} />
+        <Route path="/agents" component={AgentsPage} />
+        <Route path="/approvals" component={ApprovalsPage} />
+        <Route path="/exceptions" component={ExceptionsPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
