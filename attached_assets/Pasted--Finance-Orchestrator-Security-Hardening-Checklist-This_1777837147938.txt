@@ -1,0 +1,41 @@
+# Finance Orchestrator Security Hardening Checklist
+
+This checklist is for a finance application that needs the most locked-down deployment model available on Replit for a public-company environment. Replit documents support private deployments for authenticated organization members, SAML SSO, SCIM provisioning and deprovisioning, role-based access controls, audit logs, and enterprise security controls that are relevant to this use case.[1][2][3][4][5]
+
+## Required platform controls
+
+- Use **Replit Enterprise**, not a standard public deployment tier, for this application.[2][4]
+- Set the application deployment to **private** so only authenticated organization members can access it.[1]
+- Require **private development URLs** so preview environments are not open to the public internet.[1]
+- Enforce **SAML SSO** through the company identity provider for all user access.[2]
+- Enable **SCIM** for automatic provisioning and deprovisioning tied to corporate identity groups.[3]
+- Restrict app access to a dedicated finance/admin group instead of the full company population.[6][7]
+- Turn on **audit logs** and route them to the security team’s SIEM or monitoring workflow.[4]
+
+## Required application controls
+
+- Protect every page and API route with authentication middleware; do not rely only on Replit workspace privacy settings.[8][6]
+- Implement **role-based access control** inside the app for reporting, approvals, forecasting, AI tools, and admin actions.[6]
+- Enforce least privilege by legal entity, business unit, or data domain where sensitive finance data differs by audience.[6]
+- Deny access by default and explicitly allow only approved routes, reports, and actions.[6]
+- Keep all secrets server-side and use Replit secret management rather than embedding credentials in code or client config.[9][5]
+
+## Data and infrastructure controls
+
+- Do **not** connect the frontend directly to the production SQL database; route all data access through a server-side service or API layer.[5]
+- Use a **read-only** database credential for reporting wherever possible.[5]
+- Separate read and write credentials if the app supports approvals, notes, plans, or other write-back features.[5]
+- Limit database permissions to approved schemas, views, or stored procedures rather than broad table access.[5]
+- Enable encryption in transit and rotate secrets on a defined schedule under security ownership.[5][10]
+
+## Governance controls
+
+- Create named owners for platform admin, application admin, finance data owner, and security review.[6][4]
+- Require a documented access review cadence for all privileged users and service accounts.[4]
+- Log all admin changes, approval actions, exceptions, and sensitive data exports.[4]
+- Keep separate non-production and production environments, with sanitized data in non-production where practical.[5][10]
+- Review any AI or connector configuration to ensure it cannot expose confidential data outside approved user scope.[9][5]
+
+## Go-live gate
+
+The application should not go live until all of the following are true: deployment is private, SSO is enforced, SCIM is active, audit logs are captured, app-level RBAC is tested, secrets are server-side only, and finance stakeholders have validated that sensitive reports are visible only to approved users.[1][2][3][4][6][9]

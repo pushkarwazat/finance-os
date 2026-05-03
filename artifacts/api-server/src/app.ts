@@ -1,19 +1,22 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import helmet from "helmet";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { requestIdMiddleware } from "./middlewares/request-id.js";
+import { authenticateMiddleware } from "./middlewares/authenticate.js";
 import { errorHandlerMiddleware } from "./middlewares/error-handler.js";
 
 const app: Express = express();
 
+// ─────────────────────────────────────────────────────────────────────────────
 // 1. Structured request logging (must be first to capture all requests)
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(
   pinoHttp({
     logger,
-    // Propagate upstream X-Request-Id into pino-http so every log line carries it.
-    // The requestIdMiddleware below also sets res.locals.requestId for route handlers.
     genReqId: (req) => {
       const existing = req.headers["x-request-id"] ?? req.headers["x-correlation-id"];
       if (typeof existing === "string" && existing.length > 0) return existing;
@@ -36,18 +39,99 @@ app.use(
   }),
 );
 
-// 2. Attach requestId + traceId to res.locals and response headers
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. Request ID + Trace ID
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(requestIdMiddleware);
 
-// 3. Security / parsing middleware
-app.use(cors());
-app.use(express.json());
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. Security headers (helmet)
+//    Content-Security-Policy is relaxed slightly for the API-only server;
+//    tighten further once a real IdP is connected.
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  }),
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. CORS — allow the Replit proxy domain and localhost dev ports
+//    REPLIT_DOMAINS is a comma-separated list set by the Replit runtime.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const replitDomains = (process.env.REPLIT_DOMAINS ?? "")
+  .split(",")
+  .map((d) => d.trim())
+  .filter(Boolean)
+  .map((d) => `https://${d}`);
+
+const allowedOrigins = new Set<string>([
+  ...replitDomains,
+  "http://localhost:80",
+  "http://localhost:24160",
+  "http://localhost:8080",
+]);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (server-to-server, curl, healthchecks)
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.has(origin) ||
+        // Allow any subdomain of the Replit dev domain
+        origin.endsWith(".replit.dev") ||
+        origin.endsWith(".repl.co") ||
+        origin.endsWith(".kirk.replit.dev")
+      ) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: origin '${origin}' is not allowed`));
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
+    exposedHeaders: ["X-Request-Id", "X-Trace-Id"],
+  }),
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Body parsing
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Application routes
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Authentication — applied to every /api route except /api/healthz
+//    /api/healthz must remain public for load-balancer and uptime probes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+app.use("/api", (req, res, next) => {
+  if (req.path === "/healthz") return next();
+  return authenticateMiddleware(req, res, next);
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 7. Application routes
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use("/api", router);
 
-// 5. Centralised error handler — MUST be last
+// ─────────────────────────────────────────────────────────────────────────────
+// 8. Centralised error handler — MUST be last
+// ─────────────────────────────────────────────────────────────────────────────
+
 app.use(errorHandlerMiddleware);
 
 export default app;

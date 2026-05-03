@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import NotFound from "@/pages/not-found"
 import { ThemeProvider } from "next-themes"
+import { AuthProvider } from "@/context/auth"
+import { ProtectedRoute } from "@/components/protected-route"
 
 // Import pages
 import { MetricsPage } from "@/pages/metrics"
@@ -39,36 +41,38 @@ const queryClient = new QueryClient()
 function Router() {
   return (
     <AppLayout>
-      <Switch>
-        <Route path="/" component={MetricsPage} />
-        <Route path="/metrics" component={MetricsPage} />
-        <Route path="/ask" component={AskPage} />
-        <Route path="/variance" component={VariancePage} />
-        <Route path="/close" component={ClosePage} />
-        <Route path="/documents" component={DocumentsPage} />
-        <Route path="/governance" component={GovernancePage} />
-        <Route path="/evals" component={EvalsPage} />
-        <Route path="/glossary" component={GlossaryPage} />
-        <Route path="/agents" component={AgentsPage} />
-        <Route path="/approvals" component={ApprovalsPage} />
-        <Route path="/exceptions" component={ExceptionsPage} />
-        <Route path="/budget" component={BudgetPage} />
-        <Route path="/treasury" component={TreasuryPage} />
-        <Route path="/consolidation" component={ConsolidationPage} />
-        <Route path="/requirements" component={RequirementsInspectorPage} />
-        <Route path="/executive-dashboard" component={ExecutiveDashboardPage} />
-        <Route path="/reporting" component={ReportingCenterPage} />
-        <Route path="/forecasting" component={ForecastingWorkbenchPage} />
-        <Route path="/scenarios" component={ScenarioLabPage} />
-        <Route path="/ai-insights" component={AiInsightsPage} />
-        <Route path="/margin-optimization" component={MarginOptimizationPage} />
-        <Route path="/cost-reduction" component={CostReductionPage} />
-        <Route path="/board-pack" component={BoardPackPage} />
-        <Route path="/report-builder" component={ReportBuilderPage} />
-        <Route path="/insights/:id" component={InsightDetailPage} />
-        <Route path="/recommendations" component={RecommendationReviewPage} />
-        <Route component={NotFound} />
-      </Switch>
+      <ProtectedRoute>
+        <Switch>
+          <Route path="/" component={MetricsPage} />
+          <Route path="/metrics" component={MetricsPage} />
+          <Route path="/ask" component={AskPage} />
+          <Route path="/variance" component={VariancePage} />
+          <Route path="/close" component={ClosePage} />
+          <Route path="/documents" component={DocumentsPage} />
+          <Route path="/governance" component={GovernancePage} />
+          <Route path="/evals" component={EvalsPage} />
+          <Route path="/glossary" component={GlossaryPage} />
+          <Route path="/agents" component={AgentsPage} />
+          <Route path="/approvals" component={ApprovalsPage} />
+          <Route path="/exceptions" component={ExceptionsPage} />
+          <Route path="/budget" component={BudgetPage} />
+          <Route path="/treasury" component={TreasuryPage} />
+          <Route path="/consolidation" component={ConsolidationPage} />
+          <Route path="/requirements" component={RequirementsInspectorPage} />
+          <Route path="/executive-dashboard" component={ExecutiveDashboardPage} />
+          <Route path="/reporting" component={ReportingCenterPage} />
+          <Route path="/forecasting" component={ForecastingWorkbenchPage} />
+          <Route path="/scenarios" component={ScenarioLabPage} />
+          <Route path="/ai-insights" component={AiInsightsPage} />
+          <Route path="/margin-optimization" component={MarginOptimizationPage} />
+          <Route path="/cost-reduction" component={CostReductionPage} />
+          <Route path="/board-pack" component={BoardPackPage} />
+          <Route path="/report-builder" component={ReportBuilderPage} />
+          <Route path="/insights/:id" component={InsightDetailPage} />
+          <Route path="/recommendations" component={RecommendationReviewPage} />
+          <Route component={NotFound} />
+        </Switch>
+      </ProtectedRoute>
     </AppLayout>
   )
 }
@@ -78,10 +82,12 @@ function App() {
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-          <Toaster />
+          <AuthProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+            <Toaster />
+          </AuthProvider>
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>

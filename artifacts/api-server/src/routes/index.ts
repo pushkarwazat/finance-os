@@ -19,10 +19,21 @@ import requirementsRouter from "./requirements.js";
 import reportingRouter from "./reporting.js";
 import forecastingRouter from "./forecasting.js";
 import insightsRouter from "./insights.js";
+import meRouter from "./me.js";
+import auditLogRouter from "./audit-log.js";
 
 const router: IRouter = Router();
 
+// Public (auth handled at app.ts level — healthz is already exempted)
 router.use(healthRouter);
+
+// Authenticated identity
+router.use(meRouter);
+
+// Audit log (governance:read required inside the route handler)
+router.use(auditLogRouter);
+
+// Core finance routes
 router.use(metricsRouter);
 router.use(askRouter);
 router.use(varianceRouter);
@@ -39,6 +50,8 @@ router.use(budgetRouter);
 router.use(treasuryRouter);
 router.use(consolidationRouter);
 router.use(requirementsRouter);
+
+// Analytics phase-3 routes
 router.use(reportingRouter);
 router.use(forecastingRouter);
 router.use(insightsRouter);

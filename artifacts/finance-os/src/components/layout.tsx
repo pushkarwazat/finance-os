@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter"
 import { BarChart3, MessageSquare, LineChart, CheckSquare, FileText, Shield, Activity, BookOpen, Settings, Bot, ShieldAlert, AlertTriangle, DollarSign, Landmark, GitMerge, ClipboardList, LayoutDashboard, FileBarChart2, TrendingUp, Layers, Lightbulb, Target, Scissors, Presentation, Hammer, ListChecks } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTheme } from "next-themes"
+import { useAuth } from "@/context/auth"
 import {
   Sidebar,
   SidebarContent,
@@ -42,9 +43,21 @@ const navigation = [
   { name: "Requirements", href: "/requirements", icon: ClipboardList },
 ]
 
+const ROLE_LABELS: Record<string, string> = {
+  admin: "Admin",
+  cfo: "CFO",
+  controller: "Controller",
+  finance_manager: "Fin. Manager",
+  analyst: "Analyst",
+  operator: "Operator",
+  auditor: "Auditor",
+  viewer: "Viewer",
+}
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation()
   const { theme, setTheme } = useTheme()
+  const { user } = useAuth()
 
   return (
     <SidebarProvider defaultOpen>
@@ -78,18 +91,26 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4 border-t border-border">
-            <div className="flex items-center justify-between w-full">
-              <Button 
-                variant="ghost" 
-                size="icon" 
+            <div className="flex items-center gap-3 w-full">
+              <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                {user?.initials ?? "—"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-sidebar-foreground truncate leading-tight">
+                  {user?.name ?? "Loading…"}
+                </p>
+                <p className="text-xs text-muted-foreground leading-tight">
+                  {user ? (ROLE_LABELS[user.role] ?? user.role) : ""}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                className="text-sidebar-foreground/70 hover:text-sidebar-foreground shrink-0"
               >
                 <Settings className="h-4 w-4" />
               </Button>
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-medium">
-                JD
-              </div>
             </div>
           </SidebarFooter>
         </Sidebar>
