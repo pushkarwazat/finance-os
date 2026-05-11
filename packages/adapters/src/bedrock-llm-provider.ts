@@ -34,15 +34,17 @@ import type {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function isClaudeModel(modelId: string): boolean {
-  return modelId.startsWith("anthropic.");
+  // Handles direct IDs (anthropic.claude-...) and cross-region inference
+  // profiles (us.anthropic.claude-..., eu.anthropic.claude-..., ap.anthropic.claude-...)
+  return modelId.includes("anthropic.");
 }
 
 function isNovaModel(modelId: string): boolean {
-  return modelId.startsWith("amazon.nova");
+  return modelId.includes("amazon.nova");
 }
 
 function isTitanModel(modelId: string): boolean {
-  return modelId.startsWith("amazon.titan-text");
+  return modelId.includes("amazon.titan-text");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
