@@ -500,7 +500,7 @@ export function AskPage() {
       const res = await fetch(apiUrl("/ask"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, sessionId }),
+        body: JSON.stringify({ question, ...(sessionId ? { sessionId } : {}) }),
       })
       if (!res.ok) throw new Error("Request failed")
       return res.json()
