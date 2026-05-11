@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { useQuery, useMutation } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -8,8 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import {
   Send, Bot, User, Loader2, ChevronDown, ChevronRight,
-  FlaskConical, BookOpen, FileText, ShieldAlert, Lock,
-  Sparkles, ExternalLink, AlertTriangle,
+  BookOpen, FileText, Lock, Sparkles, AlertTriangle,
+  PlusCircle, MessageSquare, RotateCcw,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -38,6 +38,7 @@ interface AskResponse {
   agentId: string
   latencyMs: number
   tokens: number
+  turnIndex: number
   createdAt: string
 }
 
@@ -46,6 +47,7 @@ interface ChatMessage {
   role: "user" | "assistant"
   content: string
   askResponse?: AskResponse
+  turnIndex?: number
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -441,9 +443,15 @@ function AssistantBubble({
 
         {/* Footer */}
         {resp && (
-          <p className="text-[10px] text-muted-foreground px-1">
-            {resp.latencyMs}ms · {resp.tokens} tokens
-            {isActive ? " · Inspector active →" : " · Click to inspect sources"}
+          <p className="text-[10px] text-muted-foreground px-1 flex items-center gap-1.5">
+            {resp.turnIndex > 1 && (
+              <span className="inline-flex items-center gap-0.5 bg-muted rounded px-1 py-0.5">
+                <MessageSquare className="h-2.5 w-2.5" />
+                Turn {resp.turnIndex}
+              </span>
+            )}
+            <span>{resp.latencyMs}ms · {resp.tokens} tokens</span>
+            <span>{isActive ? "· Inspector active →" : "· Click to inspect sources"}</span>
           </p>
         )}
       </div>
@@ -455,24 +463,27 @@ function AssistantBubble({
 // AskPage
 // ─────────────────────────────────────────────────────────────────────────────
 
+const WELCOME_MESSAGE: ChatMessage = {
+  id: "welcome",
+  role: "assistant",
+  content:
+    "Hello. Ask any finance question — I'll retrieve the most relevant passages from the document corpus and ground my answer in them. Each response includes numbered sources you can expand. Follow-up questions remember the full conversation context.",
+}
+
 export function AskPage() {
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content:
-        "Hello. Ask any finance question — I'll retrieve the most relevant passages from the document corpus and ground my answer in them. Each response includes numbered sources you can expand to read the original excerpt.",
-    },
-  ])
+  const queryClient = useQueryClient()
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE])
   const [input, setInput] = useState("")
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
-  const [inspectorTab, setInspectorTab] = useState<"sources" | "examples">("sources")
+  const [inspectorTab, setInspectorTab] = useState<"sources" | "sessions">("sources")
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const activeMessage = messages.find((m) => m.id === activeMessageId)
   const activeResp = activeMessage?.askResponse
+  const exchangeCount = messages.filter((m) => m.role === "user").length
 
-  const { data: examplesData } = useQuery({
+  const { data: sessionsData, refetch: refetchSessions } = useQuery({
     queryKey: ["/api/ask/sessions"],
     queryFn: async () => {
       const res = await fetch(apiUrl("/ask/sessions"))
@@ -489,7 +500,7 @@ export function AskPage() {
       const res = await fetch(apiUrl("/ask"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, sessionId }),
       })
       if (!res.ok) throw new Error("Request failed")
       return res.json()
@@ -502,6 +513,14 @@ export function AskPage() {
     }
   }, [messages])
 
+  const handleNewConversation = () => {
+    setMessages([WELCOME_MESSAGE])
+    setSessionId(null)
+    setActiveMessageId(null)
+    setInput("")
+    refetchSessions()
+  }
+
   const handleSubmit = (question: string = input) => {
     if (!question.trim() || submitMutation.isPending) return
     const userMsg: ChatMessage = { id: `u-${Date.now()}`, role: "user", content: question }
@@ -510,15 +529,20 @@ export function AskPage() {
 
     submitMutation.mutate(question, {
       onSuccess: (data) => {
+        // Persist the session ID from the first response
+        if (!sessionId && data.sessionId) setSessionId(data.sessionId)
         const assistantMsg: ChatMessage = {
           id: `a-${Date.now()}`,
           role: "assistant",
           content: data.answer,
           askResponse: data,
+          turnIndex: data.turnIndex,
         }
         setMessages((prev) => [...prev, assistantMsg])
         setActiveMessageId(assistantMsg.id)
         setInspectorTab("sources")
+        // Refresh sessions list so the current conversation appears
+        void queryClient.invalidateQueries({ queryKey: ["/api/ask/sessions"] })
       },
       onError: () => {
         setMessages((prev) => [
@@ -533,6 +557,35 @@ export function AskPage() {
     <div className="flex h-[calc(100vh-8rem)] gap-4 max-w-[1400px] mx-auto">
       {/* ── Chat panel ─────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 bg-card border border-border rounded-xl overflow-hidden">
+        {/* Chat header — session indicator + new conversation */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-card/80">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            {sessionId ? (
+              <span className="text-xs text-muted-foreground">
+                Session active ·{" "}
+                <span className="font-medium text-foreground">
+                  {exchangeCount} exchange{exchangeCount !== 1 ? "s" : ""}
+                </span>
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">New conversation</span>
+            )}
+          </div>
+          {exchangeCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+              onClick={handleNewConversation}
+              disabled={submitMutation.isPending}
+            >
+              <RotateCcw className="h-3 w-3" />
+              New conversation
+            </Button>
+          )}
+        </div>
+
         <ScrollArea className="flex-1 p-5" ref={scrollRef}>
           <div className="space-y-5 max-w-2xl mx-auto">
             <AnimatePresence initial={false}>
@@ -642,7 +695,7 @@ export function AskPage() {
       <div className="w-80 xl:w-96 flex flex-col flex-shrink-0 bg-card border border-border rounded-xl overflow-hidden">
         {/* Tabs */}
         <div className="flex border-b border-border">
-          {(["sources", "examples"] as const).map((t) => (
+          {(["sources", "sessions"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setInspectorTab(t)}
@@ -667,6 +720,11 @@ export function AskPage() {
                 <>
                   <FileText className="h-3.5 w-3.5" />
                   Sessions
+                  {(sessionsData?.data.length ?? 0) > 0 && (
+                    <span className="ml-0.5 rounded-full bg-muted text-muted-foreground text-[10px] px-1.5 py-0 font-semibold">
+                      {sessionsData!.data.length}
+                    </span>
+                  )}
                 </>
               )}
             </button>
@@ -685,27 +743,64 @@ export function AskPage() {
               <InspectorEmpty />
             )
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground pb-1">
-                Recent sessions — click a prompt to run it.
-              </p>
-              {(examplesData?.data ?? []).length === 0 && (
-                <p className="text-xs text-muted-foreground italic">No sessions yet.</p>
-              )}
-              {(examplesData?.data ?? []).map((s) => (
-                <Card key={s.id} className="p-2.5 hover:bg-muted/40 transition-colors">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs font-medium leading-relaxed">{s.title}</p>
-                    <Badge variant="secondary" className="text-[9px] shrink-0">{s.messageCount} msg</Badge>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {new Date(s.updatedAt).toLocaleDateString()}
-                  </p>
-                </Card>
-              ))}
+            <div className="space-y-3">
+              {/* New conversation shortcut */}
+              <button
+                onClick={handleNewConversation}
+                disabled={submitMutation.isPending}
+                className="w-full flex items-center gap-2 rounded-md border border-dashed border-border px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
+              >
+                <PlusCircle className="h-3.5 w-3.5 text-primary shrink-0" />
+                Start a new conversation
+              </button>
 
-              <div className="pt-3 border-t border-border">
-                <p className="text-xs text-muted-foreground font-medium mb-2">Try these questions:</p>
+              {/* Live sessions */}
+              {(sessionsData?.data ?? []).length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Recent sessions
+                  </p>
+                  {sessionsData!.data.map((s) => (
+                    <Card
+                      key={s.id}
+                      className={cn(
+                        "p-2.5 transition-colors cursor-default",
+                        s.id === sessionId
+                          ? "border-primary/40 bg-primary/5"
+                          : "hover:bg-muted/40"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-xs font-medium leading-relaxed line-clamp-2">{s.title}</p>
+                        <Badge
+                          variant={s.id === sessionId ? "default" : "secondary"}
+                          className="text-[9px] shrink-0"
+                        >
+                          {s.messageCount / 2 | 0} turn{(s.messageCount / 2 | 0) !== 1 ? "s" : ""}
+                        </Badge>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {new Date(s.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {s.id === sessionId && (
+                          <span className="ml-1.5 text-primary font-medium">· active</span>
+                        )}
+                      </p>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {(sessionsData?.data ?? []).length === 0 && (
+                <p className="text-xs text-muted-foreground italic text-center py-4">
+                  No sessions yet — ask your first question.
+                </p>
+              )}
+
+              {/* Suggested prompts */}
+              <div className="pt-1">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Suggested questions
+                </p>
                 <div className="space-y-1.5">
                   {SUGGESTED_PROMPTS.map((p) => (
                     <button

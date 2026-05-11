@@ -7,8 +7,6 @@ import { retrievePassages, formatPassagesForPrompt } from "../lib/rag-retriever.
 
 const router = Router();
 
-const MOCK_SESSION_ID = "a0000000-0000-0000-0000-000000000001";
-
 // ─────────────────────────────────────────────────────────────────────────────
 // LLM provider — instantiated once at startup
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,6 +16,59 @@ const useBedrock =
   process.env.AWS_REGION !== undefined;
 
 const bedrockAdapter = useBedrock ? new BedrockLlmAdapter() : null;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// In-memory session store
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SessionTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+
+interface Session {
+  id: string;
+  title: string;
+  turns: SessionTurn[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+const MAX_CONTEXT_TURNS = 10; // 5 user + 5 assistant messages kept for context
+
+const sessionStore = new Map<string, Session>();
+
+function getOrCreateSession(sessionId: string | undefined): Session {
+  if (sessionId && sessionStore.has(sessionId)) {
+    return sessionStore.get(sessionId)!;
+  }
+  const id = sessionId ?? randomUUID();
+  const session: Session = {
+    id,
+    title: "",
+    turns: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  sessionStore.set(id, session);
+  return session;
+}
+
+function appendTurns(session: Session, userContent: string, assistantContent: string) {
+  session.turns.push({ role: "user", content: userContent });
+  session.turns.push({ role: "assistant", content: assistantContent });
+  // Auto-title from first question
+  if (!session.title) {
+    session.title = userContent.length > 72
+      ? userContent.slice(0, 69) + "…"
+      : userContent;
+  }
+  // Trim to keep only the most recent MAX_CONTEXT_TURNS
+  if (session.turns.length > MAX_CONTEXT_TURNS) {
+    session.turns = session.turns.slice(session.turns.length - MAX_CONTEXT_TURNS);
+  }
+  session.updatedAt = new Date().toISOString();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // System prompt — base context for all finance Q&A
@@ -34,7 +85,9 @@ When you have retrieved document passages, structure your response as follows:
 1. Lead with the direct answer citing specific numbers from the documents
 2. Explain key drivers or context
 3. Flag any risks or anomalies you observe
-4. Note any data limitations or caveats`;
+4. Note any data limitations or caveats
+
+You have access to conversation history. Use it to understand follow-up questions and build on prior answers without repeating yourself unnecessarily.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock fallback (used when LLM_PROVIDER is not set)
@@ -77,10 +130,20 @@ const MOCK_QA_STORE: Record<string, { answer: string; citations: unknown[] }> = 
   },
 };
 
-function getMockAnswer(question: string): { answer: string; citations: unknown[] } {
+function getMockAnswer(
+  question: string,
+  priorTurns: SessionTurn[],
+): { answer: string; citations: unknown[] } {
   const q = question.toLowerCase();
+  const isFollowUp = priorTurns.length > 0;
+
   if (q.includes("revenue") || q.includes("miss") || q.includes("variance")) {
-    return MOCK_QA_STORE.revenue;
+    return {
+      ...MOCK_QA_STORE.revenue,
+      answer: isFollowUp
+        ? "Building on the prior context — " + MOCK_QA_STORE.revenue.answer
+        : MOCK_QA_STORE.revenue.answer,
+    };
   }
   if (q.includes("audit") || q.includes("weakness") || q.includes("deficiency")) {
     return MOCK_QA_STORE.audit;
@@ -117,10 +180,12 @@ router.post("/ask", async (req, res, next) => {
     return;
   }
 
-  const { question, sessionId } = parsed.data;
-  const responseSessionId = sessionId ?? MOCK_SESSION_ID;
+  const { question, sessionId: requestedSessionId } = parsed.data;
+  const session = getOrCreateSession(requestedSessionId ?? undefined);
   const messageId = randomUUID();
   const startMs = Date.now();
+
+  const priorTurns = session.turns.slice(); // snapshot before appending
 
   let answer: string;
   let citations: unknown[] = [];
@@ -142,6 +207,8 @@ router.post("/ask", async (req, res, next) => {
             embeddingLatencyMs: ragResult.embeddingLatencyMs,
             searchLatencyMs: ragResult.searchLatencyMs,
             topScore: ragResult.passages[0]?.relevanceScore,
+            priorTurns: priorTurns.length,
+            sessionId: session.id,
           },
           "RAG retrieval",
         );
@@ -149,23 +216,26 @@ router.post("/ask", async (req, res, next) => {
 
       citations = ragResult.passages;
     } catch (err) {
-      // RAG failure is non-fatal — proceed with no grounding
       req.log.warn({ err }, "RAG retrieval failed — proceeding without grounding");
       ragResult = { passages: [], embeddingLatencyMs: 0, searchLatencyMs: 0, embeddingModel: "", vectorCount: 0 };
     }
 
-    // ── 2. Build grounded system prompt ──────────────────────────────────
+    // ── 2. Build grounded system prompt + conversation history ────────────
     const documentsBlock = formatPassagesForPrompt(ragResult.passages);
     const systemPrompt = BASE_SYSTEM_PROMPT + documentsBlock;
+
+    // Messages: system → prior turns → new user question
+    const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
+      { role: "system", content: systemPrompt },
+      ...priorTurns.map((t) => ({ role: t.role as "user" | "assistant", content: t.content })),
+      { role: "user", content: question },
+    ];
 
     // ── 3. Claude completion ──────────────────────────────────────────────
     try {
       const completion = await bedrockAdapter.complete({
         model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-sonnet-20241022-v2:0",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: question },
-        ],
+        messages,
         maxTokens: 1_500,
         temperature: 0.1,
         requestId: res.locals.requestId,
@@ -180,7 +250,9 @@ router.post("/ask", async (req, res, next) => {
           completionTokens: completion.usage.completionTokens,
           latencyMs: completion.executionMs,
           ragPassages: ragResult.passages.length,
+          priorTurns: priorTurns.length,
           grounded: ragResult.passages.length > 0,
+          sessionId: session.id,
         },
         "Bedrock completion",
       );
@@ -189,7 +261,7 @@ router.post("/ask", async (req, res, next) => {
     }
   } else {
     // ── Mock fallback ─────────────────────────────────────────────────────
-    const mock = getMockAnswer(question);
+    const mock = getMockAnswer(question, priorTurns);
     answer = mock.answer;
     citations = (mock.citations as Array<Record<string, unknown>>).map((c) => ({
       ...c,
@@ -197,8 +269,11 @@ router.post("/ask", async (req, res, next) => {
     }));
   }
 
+  // ── Persist turn to session ───────────────────────────────────────────────
+  appendTurns(session, question, answer);
+
   res.json({
-    sessionId: responseSessionId,
+    sessionId: session.id,
     messageId,
     question,
     answer,
@@ -206,6 +281,7 @@ router.post("/ask", async (req, res, next) => {
     agentId: "a0000000-0000-0000-0000-000000000099",
     latencyMs: Date.now() - startMs,
     tokens: Math.ceil(answer.length / 4),
+    turnIndex: session.turns.length / 2, // exchange number (1-based)
     createdAt: new Date().toISOString(),
   });
 });
@@ -216,30 +292,23 @@ router.get("/ask/sessions", (req, res) => {
     res.status(400).json({ error: "bad_request", statusCode: 400 });
     return;
   }
-  const sessions = [
-    {
-      id: MOCK_SESSION_ID,
-      title: "Q4 Revenue Variance Analysis",
-      messageCount: 6,
-      createdAt: "2025-02-01T14:00:00Z",
-      updatedAt: "2025-02-01T14:45:00Z",
-    },
-    {
-      id: "a0000000-0000-0000-0000-000000000002",
-      title: "Audit Report Findings",
-      messageCount: 3,
-      createdAt: "2025-01-22T10:30:00Z",
-      updatedAt: "2025-01-22T11:00:00Z",
-    },
-    {
-      id: "a0000000-0000-0000-0000-000000000003",
-      title: "Close Checklist Status",
-      messageCount: 2,
-      createdAt: "2025-02-02T09:00:00Z",
-      updatedAt: "2025-02-02T09:15:00Z",
-    },
-  ];
-  res.json({ data: sessions.slice(0, parsed.data.limit ?? 20), total: sessions.length });
+
+  const limit = parsed.data.limit ?? 20;
+
+  // Return live sessions first (newest first), then fill with seeded examples if few
+  const liveSessions = Array.from(sessionStore.values())
+    .filter((s) => s.title) // only sessions with at least one exchange
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, limit)
+    .map((s) => ({
+      id: s.id,
+      title: s.title,
+      messageCount: s.turns.length,
+      createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+    }));
+
+  res.json({ data: liveSessions, total: liveSessions.length });
 });
 
 export default router;
