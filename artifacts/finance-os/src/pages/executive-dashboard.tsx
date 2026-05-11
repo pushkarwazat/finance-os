@@ -33,7 +33,11 @@ function formatValue(value: number, format: string) {
   }
   if (format === "percentage") return `${(value * 100).toFixed(1)}%`
   if (format === "days") return `${value}d`
-  if (format === "count") return value.toFixed(1)
+  if (format === "count") {
+    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
+    if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+    return value.toLocaleString()
+  }
   return String(value)
 }
 

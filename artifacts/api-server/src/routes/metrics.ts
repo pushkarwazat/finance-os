@@ -32,7 +32,7 @@ router.get("/metrics/summary", (req, res) => {
     res.status(400).json({ error: "bad_request", statusCode: 400, message: parsed.error.message });
     return;
   }
-  const { period = "Q4", fiscalYear = 2025 } = parsed.data;
+  const { period = "Q1", fiscalYear = 2026 } = parsed.data;
   const filtered = MOCK_METRICS.filter(
     (m) => m.period === period && m.fiscalYear === fiscalYear
   );
