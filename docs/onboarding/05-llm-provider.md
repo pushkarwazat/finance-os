@@ -28,6 +28,7 @@ for each (e.g. `gpt-4o` for generation, `text-embedding-3-large` for indexing).
 |---|---|---|---|
 | OpenAI | `gpt-4o`, `gpt-4o-mini` | `text-embedding-3-large` | Recommended default |
 | Azure OpenAI | Any deployed model | Any deployed model | Required for SOC 2 / government |
+| **Amazon Bedrock** | **Claude Sonnet 4, Nova Pro** | **Titan Embed v2** | **Active — wired via `BedrockLlmAdapter`** |
 | Anthropic | `claude-3-5-sonnet` | (use OpenAI for embeds) | Best reasoning quality |
 | Google Gemini | `gemini-1.5-pro` | `text-embedding-004` | Good for multimodal |
 | Mistral | `mistral-large` | `mistral-embed` | EU data residency option |

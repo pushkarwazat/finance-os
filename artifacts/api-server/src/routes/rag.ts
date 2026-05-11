@@ -13,8 +13,18 @@ import {
   SensitivityLevelSchema,
   DocumentTypeSchema,
 } from "@financeos/rag";
+import { BedrockLlmAdapter } from "@financeos/adapters";
 
 const router = Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bedrock embedding adapter — used for query encoding when configured
+// ─────────────────────────────────────────────────────────────────────────────
+
+const useBedrockEmbeddings =
+  process.env.LLM_PROVIDER === "bedrock" && process.env.AWS_REGION !== undefined;
+
+const bedrockEmbedder = useBedrockEmbeddings ? new BedrockLlmAdapter() : null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper — build a retrieval request with defaults
@@ -102,7 +112,7 @@ const SearchBodySchema = z.object({
   minScore: z.number().min(0).max(1).optional(),
 });
 
-router.post("/rag/search", (req, res) => {
+router.post("/rag/search", async (req, res, next) => {
   const parsed = SearchBodySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "bad_request", message: parsed.error.message });
@@ -130,9 +140,51 @@ router.post("/rag/search", (req, res) => {
     };
   }
 
+  // Encode the query with Bedrock Titan Embeddings when configured.
+  // The resulting vector is logged and will be forwarded to the real vector
+  // store once one is wired into the container (see docs/onboarding/03-vector-db.md).
+  let queryEmbedding: number[] | undefined;
+  let embeddingMeta: { model: string; dimensions: number; tokenCount: number; latencyMs: number } | undefined;
+
+  if (bedrockEmbedder) {
+    try {
+      const embResult = await bedrockEmbedder.embed({
+        model: process.env.BEDROCK_EMBEDDING_MODEL_ID ?? "amazon.titan-embed-text-v2:0",
+        input: question,
+        dimensions: 1024,
+        requestId: res.locals.requestId,
+      });
+      queryEmbedding = embResult.embeddings[0];
+      embeddingMeta = {
+        model: embResult.model,
+        dimensions: queryEmbedding?.length ?? 1024,
+        tokenCount: embResult.usage.totalTokens,
+        latencyMs: embResult.executionMs,
+      };
+      req.log.info(
+        {
+          embeddingModel: embResult.model,
+          dimensions: queryEmbedding?.length,
+          tokenCount: embResult.usage.totalTokens,
+          latencyMs: embResult.executionMs,
+          requestId: res.locals.requestId,
+        },
+        "Bedrock Titan query embedding",
+      );
+    } catch (err) {
+      return next(err);
+    }
+  }
+
   const request = buildRequest(question, filters, options);
   const answer = mockRetrieve(request);
-  res.json(answer);
+
+  res.json({
+    ...answer,
+    ...(embeddingMeta
+      ? { _embedding: { provider: "bedrock", ...embeddingMeta, note: "query vector ready for real vector store" } }
+      : {}),
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -310,16 +362,27 @@ router.get("/rag/eval/cases", (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.get("/rag/providers", (_req, res) => {
+  const embeddingActive = useBedrockEmbeddings
+    ? "bedrock"
+    : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.provider;
+  const embeddingModel = useBedrockEmbeddings
+    ? (process.env.BEDROCK_EMBEDDING_MODEL_ID ?? "amazon.titan-embed-text-v2:0")
+    : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.model;
+  const embeddingDimensions = useBedrockEmbeddings
+    ? 1024
+    : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.dimensions;
+
   res.json({
     vectorStore: {
       supported: ["pinecone", "qdrant", "pgvector", "weaviate", "opensearch", "in_memory"],
       active: DEFAULT_MOCK_PROVIDER_CONFIG.vectorStore.provider,
     },
     embedding: {
-      supported: ["openai", "cohere", "mock"],
-      active: DEFAULT_MOCK_PROVIDER_CONFIG.embedding.provider,
-      model: DEFAULT_MOCK_PROVIDER_CONFIG.embedding.model,
-      dimensions: DEFAULT_MOCK_PROVIDER_CONFIG.embedding.dimensions,
+      supported: ["openai", "cohere", "bedrock", "mock"],
+      active: embeddingActive,
+      model: embeddingModel,
+      dimensions: embeddingDimensions,
+      live: useBedrockEmbeddings,
     },
     reranker: {
       supported: ["cohere", "bge", "cross_encoder", "mock"],

@@ -235,13 +235,19 @@ export class BedrockLlmAdapter implements LlmProviderAdapter {
 
   private readonly client: BedrockRuntimeClient;
   private readonly defaultModelId: string;
+  /** Titan Embeddings v2 model used when embed() is called. */
+  private readonly defaultEmbeddingModelId: string;
 
-  constructor(options?: { region?: string; modelId?: string }) {
+  constructor(options?: { region?: string; modelId?: string; embeddingModelId?: string }) {
     const region = options?.region ?? process.env.AWS_REGION ?? "us-east-1";
     this.defaultModelId =
       options?.modelId ??
       process.env.BEDROCK_MODEL_ID ??
       "anthropic.claude-3-5-sonnet-20241022-v2:0";
+    this.defaultEmbeddingModelId =
+      options?.embeddingModelId ??
+      process.env.BEDROCK_EMBEDDING_MODEL_ID ??
+      "amazon.titan-embed-text-v2:0";
 
     this.client = new BedrockRuntimeClient({ region });
   }
@@ -283,14 +289,45 @@ export class BedrockLlmAdapter implements LlmProviderAdapter {
     }
   }
 
-  async embed(_request: LlmEmbeddingRequest): Promise<LlmEmbeddingResponse> {
-    // Bedrock embedding support via Amazon Titan Embeddings — wire separately
-    // if you need RAG embeddings through Bedrock.
-    throw new Error(
-      "Embeddings via BedrockLlmAdapter not yet implemented. " +
-        "Use amazon.titan-embed-text-v2:0 with InvokeModelCommand directly, " +
-        "or set EMBEDDING_PROVIDER=bedrock in your env.",
+  async embed(request: LlmEmbeddingRequest): Promise<LlmEmbeddingResponse> {
+    const modelId = request.model || this.defaultEmbeddingModelId;
+    const startMs = Date.now();
+
+    // Titan Embeddings v2 accepts one text per call; fan out in parallel for batches.
+    const inputs = Array.isArray(request.input) ? request.input : [request.input];
+
+    const results = await Promise.all(
+      inputs.map(async (text) => {
+        const payload: Record<string, unknown> = { inputText: text, normalize: true };
+        // Titan Embeddings v2 supports 256, 512, or 1024 dimensions (default 1024).
+        if (request.dimensions && [256, 512, 1024].includes(request.dimensions)) {
+          payload.dimensions = request.dimensions;
+        }
+
+        const command = new InvokeModelCommand({
+          modelId,
+          contentType: "application/json",
+          accept: "application/json",
+          body: JSON.stringify(payload),
+        });
+
+        const raw = await this.client.send(command);
+        const body = JSON.parse(
+          new TextDecoder().decode(raw.body),
+        ) as { embedding: number[]; inputTextTokenCount: number };
+
+        return body;
+      }),
     );
+
+    const totalTokens = results.reduce((sum, r) => sum + (r.inputTextTokenCount ?? 0), 0);
+
+    return {
+      embeddings: results.map((r) => r.embedding),
+      model: modelId,
+      usage: { promptTokens: totalTokens, totalTokens },
+      executionMs: Date.now() - startMs,
+    };
   }
 
   getLimits(model: string): LlmProviderLimits {
