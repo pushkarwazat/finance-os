@@ -13,4 +13,5 @@ export * from "./semantic-engine.js";
 export * from "./vector-store.js";
 export * from "./reranker.js";
 export * from "./llm-provider.js";
+export * from "./bedrock-llm-provider.js";
 export * from "./auth-provider.js";

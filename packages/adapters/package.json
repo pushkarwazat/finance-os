@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1045.0",
     "@financeos/shared": "workspace:*",
     "zod": "catalog:"
   },

@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1045.0",
     "@financeos/adapters": "workspace:*",
     "@financeos/agents": "workspace:*",
     "@financeos/container": "workspace:*",
