@@ -100,6 +100,10 @@ async function buildAll() {
       "puppeteer",
       "puppeteer-core",
       "electron",
+      // Document parsing — use __dirname-relative file lookups that fail in bundles
+      "pdf-parse",
+      "mammoth",
+      "multer",
     ],
     sourcemap: "linked",
     plugins: [

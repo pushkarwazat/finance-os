@@ -10,12 +10,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import {
   FileText, Search, HardDrive, Filter, CheckCircle2, AlertCircle, RefreshCw,
   Clock, Shield, Table2, FileStack, Sparkles, ChevronRight, BookOpen,
-  ArrowRight, BarChart3, Lock, Zap, X, ExternalLink, Eye, Database,
+  ArrowRight, BarChart3, Lock, Zap, X, Database, UploadCloud,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types (matching backend RAG schemas)
+// Types
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface RagDocument {
@@ -126,6 +126,15 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   return r.json() as Promise<T>
 }
 
+async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const r = await fetch(`${BASE}${path}`, { method: "POST", body: formData })
+  if (!r.ok) {
+    const body = await r.json().catch(() => ({})) as { message?: string }
+    throw new Error(body.message ?? `Upload failed (${r.status})`)
+  }
+  return r.json() as Promise<T>
+}
+
 function useApiGet<T>(path: string | null) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(false)
@@ -157,13 +166,13 @@ function useApiGet<T>(path: string | null) {
 
 function typeColor(type: string) {
   const map: Record<string, string> = {
-    contract:       "bg-blue-500/10 text-blue-500 border-blue-500/20",
-    invoice:        "bg-orange-500/10 text-orange-500 border-orange-500/20",
-    policy_doc:     "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    close_memo:     "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    board_deck:     "bg-red-500/10 text-red-500 border-red-500/20",
-    audit_workpaper:"bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
-    sop:            "bg-sky-500/10 text-sky-500 border-sky-500/20",
+    contract:        "bg-blue-500/10 text-blue-500 border-blue-500/20",
+    invoice:         "bg-orange-500/10 text-orange-500 border-orange-500/20",
+    policy_doc:      "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+    close_memo:      "bg-purple-500/10 text-purple-500 border-purple-500/20",
+    board_deck:      "bg-red-500/10 text-red-500 border-red-500/20",
+    audit_workpaper: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
+    sop:             "bg-sky-500/10 text-sky-500 border-sky-500/20",
   }
   return map[type] ?? "bg-muted text-muted-foreground border-muted"
 }
@@ -350,23 +359,15 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
         body: JSON.stringify({ question: q, tablesOnly }),
       })
       setAnswer(result)
-    } catch (e) {
+    } catch {
       setError("Search failed. Please try again.")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    search(question)
-  }
-
-  const handleSuggestion = (q: string) => {
-    setQuestion(q)
-    search(q)
-    inputRef.current?.focus()
-  }
+  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); search(question) }
+  const handleSuggestion = (q: string) => { setQuestion(q); search(q); inputRef.current?.focus() }
 
   return (
     <div className="space-y-4">
@@ -438,7 +439,6 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
 
       {answer && (
         <div className="space-y-4">
-          {/* Answer summary bar */}
           <div className="flex items-center justify-between gap-4 p-3 rounded-lg bg-muted/40 border border-border/60">
             <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1">
@@ -457,9 +457,7 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
               <div className={cn("text-xs font-semibold", confidenceColor(answer.confidenceTier))}>
                 {formatPct(answer.confidence)} confidence
               </div>
-              <div className={cn(
-                "h-1.5 w-16 rounded-full bg-muted overflow-hidden"
-              )}>
+              <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all",
@@ -473,7 +471,6 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
             </div>
           </div>
 
-          {/* Abstention */}
           {answer.abstained && (
             <div className="flex gap-3 p-4 rounded-lg border border-muted bg-muted/30">
               <AlertCircle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
@@ -484,7 +481,6 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
             </div>
           )}
 
-          {/* Answer text */}
           {answer.answerText && (
             <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-1.5 mb-2">
@@ -495,7 +491,6 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
             </div>
           )}
 
-          {/* Citations */}
           {answer.citations.length > 0 && (
             <div>
               <div className="flex items-center gap-2 mb-3">
@@ -513,6 +508,216 @@ function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upload panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+function UploadPanel({ onSuccess }: { onSuccess: () => void }) {
+  const [file, setFile] = useState<File | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const [title, setTitle] = useState("")
+  const [docType, setDocType] = useState("policy_doc")
+  const [sensitivity, setSensitivity] = useState("internal")
+  const [fiscalYear, setFiscalYear] = useState("")
+  const [period, setPeriod] = useState("")
+  const [uploading, setUploading] = useState(false)
+  const [result, setResult] = useState<RagDocument | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = (f: File) => {
+    setFile(f)
+    if (!title) setTitle(f.name.replace(/\.[^.]+$/, "").replace(/[-_]/g, " "))
+    setResult(null)
+    setError(null)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragging(false)
+    const f = e.dataTransfer.files[0]
+    if (f) handleFile(f)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!file || !title.trim()) return
+
+    setUploading(true)
+    setError(null)
+    setResult(null)
+
+    const formData = new FormData()
+    formData.append("file", file)
+    formData.append("title", title.trim())
+    formData.append("type", docType)
+    formData.append("sensitivityLevel", sensitivity)
+    if (fiscalYear) formData.append("fiscalYear", fiscalYear)
+    if (period) formData.append("period", period)
+
+    try {
+      const doc = await apiUpload<RagDocument>("/rag/upload", formData)
+      setResult(doc)
+      onSuccess()
+      setFile(null)
+      setTitle("")
+      setFiscalYear("")
+      setPeriod("")
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div>
+        <h3 className="text-base font-semibold mb-1">Upload Document</h3>
+        <p className="text-sm text-muted-foreground">
+          Upload a PDF, DOCX, or TXT file. It will be chunked, embedded with Bedrock Titan, and indexed in pgvector so it is immediately searchable via RAG.
+        </p>
+      </div>
+
+      {result && (
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-green-500/30 bg-green-500/5">
+          <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-green-700 dark:text-green-400">Indexed successfully</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <span className="font-medium">{result.title}</span> · {result.chunkCount} chunks indexed · switch to Browse or RAG Search to query it
+            </p>
+          </div>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Drop zone */}
+        <div
+          onDragOver={e => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={cn(
+            "border-2 border-dashed rounded-xl p-10 text-center cursor-pointer transition-all select-none",
+            dragging ? "border-primary bg-primary/5" : file
+              ? "border-primary/40 bg-primary/5"
+              : "border-border hover:border-primary/50 hover:bg-muted/40"
+          )}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={ACCEPT}
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
+          />
+          <UploadCloud className={cn("h-9 w-9 mx-auto mb-3", file ? "text-primary" : "text-muted-foreground")} />
+          {file ? (
+            <div>
+              <p className="text-sm font-semibold">{file.name}</p>
+              <p className="text-xs text-muted-foreground mt-1">{formatKB(file.size)}</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm font-medium">Drop a file here or click to browse</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, or TXT · max 20 MB</p>
+            </div>
+          )}
+        </div>
+
+        {/* Metadata */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="sm:col-span-2">
+            <label className="text-xs font-medium mb-1.5 block">
+              Title <span className="text-destructive">*</span>
+            </label>
+            <Input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="e.g. Q3 FY2025 Close Memo"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium mb-1.5 block">Document Type</label>
+            <Select value={docType} onValueChange={setDocType}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="contract">Contract</SelectItem>
+                <SelectItem value="invoice">Invoice</SelectItem>
+                <SelectItem value="policy_doc">Policy</SelectItem>
+                <SelectItem value="close_memo">Close Memo</SelectItem>
+                <SelectItem value="board_deck">Board Deck</SelectItem>
+                <SelectItem value="audit_workpaper">Audit Workpaper</SelectItem>
+                <SelectItem value="sop">SOP</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium mb-1.5 block">Sensitivity Level</label>
+            <Select value={sensitivity} onValueChange={setSensitivity}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="public">Public</SelectItem>
+                <SelectItem value="internal">Internal</SelectItem>
+                <SelectItem value="confidential">Confidential</SelectItem>
+                <SelectItem value="restricted">Restricted</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium mb-1.5 block">
+              Fiscal Year <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Input
+              type="number"
+              value={fiscalYear}
+              onChange={e => setFiscalYear(e.target.value)}
+              placeholder="2025"
+              min={2000}
+              max={2099}
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium mb-1.5 block">
+              Period <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Input
+              value={period}
+              onChange={e => setPeriod(e.target.value)}
+              placeholder="Q3, H1, Full Year…"
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          disabled={!file || !title.trim() || uploading}
+          className="w-full gap-2"
+        >
+          {uploading
+            ? <><RefreshCw className="h-4 w-4 animate-spin" /> Embedding &amp; Indexing…</>
+            : <><UploadCloud className="h-4 w-4" /> Upload &amp; Index Document</>}
+        </Button>
+      </form>
     </div>
   )
 }
@@ -616,7 +821,7 @@ function ChunkList({ docId }: { docId: string }) {
       <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
         {chunks.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">No chunks available.</p>
-        ) : chunks.map((chunk, i) => (
+        ) : chunks.map((chunk) => (
           <div key={chunk.chunkId} className={cn(
             "p-3 rounded-lg border text-xs",
             chunk.contentType === "table"
@@ -659,18 +864,11 @@ function ChunkList({ docId }: { docId: string }) {
 // Evidence inspector (right-side sheet)
 // ─────────────────────────────────────────────────────────────────────────────
 
-function EvidenceInspector({
-  doc,
-  onClose,
-}: {
-  doc: RagDocument
-  onClose: () => void
-}) {
+function EvidenceInspector({ doc, onClose }: { doc: RagDocument; onClose: () => void }) {
   const [tab, setTab] = useState("overview")
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-5 pb-4 border-b border-border shrink-0">
         <div className="flex items-start gap-2 mb-3">
           <Badge variant="outline" className={cn("capitalize text-[10px]", typeColor(doc.type))}>
@@ -687,10 +885,9 @@ function EvidenceInspector({
         <p className="text-xs text-muted-foreground">{doc.filename}</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b border-border shrink-0">
         {[
-          { id: "overview", label: "Overview", icon: Eye },
+          { id: "overview", label: "Overview", icon: FileText },
           { id: "chunks", label: "Evidence", icon: FileStack },
         ].map(({ id, label, icon: Icon }) => (
           <button
@@ -709,7 +906,6 @@ function EvidenceInspector({
         ))}
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-y-auto p-5">
         {tab === "overview" && (
           <div className="space-y-5">
@@ -801,19 +997,24 @@ function StatCard({ icon: Icon, label, value, sub }: {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function DocumentsPage() {
-  const [activeTab, setActiveTab] = useState("search")
+  const [activeTab, setActiveTab] = useState("upload")
   const [selectedDoc, setSelectedDoc] = useState<RagDocument | null>(null)
   const [typeFilter, setTypeFilter] = useState("all")
   const [browseSearch, setBrowseSearch] = useState("")
 
-  const { data: status } = useApiGet<RagStatus>("/rag/status")
-  const { data: docsResp, loading: docsLoading } = useApiGet<{ data: RagDocument[]; total: number; byType: Record<string, number> }>(
+  const { data: status, refetch: refetchStatus } = useApiGet<RagStatus>("/rag/status")
+  const { data: docsResp, loading: docsLoading, refetch: refetchDocs } = useApiGet<{ data: RagDocument[]; total: number; byType: Record<string, number> }>(
     "/rag/documents?limit=100"
   )
 
   const handleDocClick = (id: string) => {
     const doc = docsResp?.data.find(d => d.id === id)
     if (doc) setSelectedDoc(doc)
+  }
+
+  const handleUploadSuccess = () => {
+    refetchDocs()
+    refetchStatus()
   }
 
   const filteredDocs = (docsResp?.data ?? []).filter(d => {
@@ -832,11 +1033,11 @@ export function DocumentsPage() {
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Document Intelligence</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Hybrid RAG search across contracts, memos, policy docs, and more.
+            Upload documents, then search across them with hybrid RAG.
           </p>
         </div>
         {status && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-green-500/10 text-green-600 border border-green-500/20 px-2.5 py-1.5 rounded-full shrink-0">
+          <div className="flex items-center gap-1.5 text-xs text-green-600 bg-green-500/10 border border-green-500/20 px-2.5 py-1.5 rounded-full shrink-0">
             <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
             Index operational · {status.indexedDocuments} docs · {status.indexedChunks} chunks
           </div>
@@ -865,7 +1066,10 @@ export function DocumentsPage() {
 
       {/* Main tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
+        <TabsList className="grid w-full grid-cols-3 max-w-sm">
+          <TabsTrigger value="upload" className="gap-1.5">
+            <UploadCloud className="h-3.5 w-3.5" /> Upload
+          </TabsTrigger>
           <TabsTrigger value="search" className="gap-1.5">
             <Sparkles className="h-3.5 w-3.5" /> RAG Search
           </TabsTrigger>
@@ -873,6 +1077,15 @@ export function DocumentsPage() {
             <FileText className="h-3.5 w-3.5" /> Browse
           </TabsTrigger>
         </TabsList>
+
+        {/* ── Upload tab ──────────────────────────────────────────────────── */}
+        <TabsContent value="upload" className="mt-4">
+          <Card>
+            <CardContent className="p-6">
+              <UploadPanel onSuccess={handleUploadSuccess} />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* ── RAG Search tab ─────────────────────────────────────────────── */}
         <TabsContent value="search" className="mt-4">
@@ -925,8 +1138,15 @@ export function DocumentsPage() {
                   ))
                 : filteredDocs.length === 0
                 ? (
-                    <div className="col-span-full py-12 text-center text-muted-foreground border rounded-xl border-dashed">
-                      No documents match your criteria.
+                    <div className="col-span-full py-16 text-center text-muted-foreground border rounded-xl border-dashed flex flex-col items-center gap-3">
+                      <UploadCloud className="h-10 w-10 text-muted-foreground/40" />
+                      <div>
+                        <p className="font-medium">No documents yet</p>
+                        <p className="text-sm mt-1">Upload a PDF, DOCX, or TXT in the Upload tab to get started.</p>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => setActiveTab("upload")} className="mt-1 gap-1.5">
+                        <UploadCloud className="h-3.5 w-3.5" /> Go to Upload
+                      </Button>
                     </div>
                   )
                 : filteredDocs.map(doc => (
