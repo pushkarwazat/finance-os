@@ -5,13 +5,11 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import {
-  MessageSquare, Send, Bot, User, Loader2, Info, AlertTriangle,
-  AlertCircle, ChevronDown, ChevronRight, Database, FlaskConical,
-  Layers, GitBranch, ShieldAlert, CheckCircle2, SlidersHorizontal,
-  Sparkles, BookOpen,
+  Send, Bot, User, Loader2, ChevronDown, ChevronRight,
+  FlaskConical, BookOpen, FileText, ShieldAlert, Lock,
+  Sparkles, ExternalLink, AlertTriangle,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -19,40 +17,35 @@ import { motion, AnimatePresence } from "framer-motion"
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface MetricRef {
-  slug: string; label: string; domain: string
-  matchType: string; resolutionConfidence: number; formula?: string
+interface AskCitation {
+  id: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  pageNumber: number | null
+  excerpt: string
+  relevanceScore: number
+  queryId?: string
+  sensitivityLevel?: string
 }
-interface MockDataPoint {
-  label: string; value: number | string | null; formattedValue?: string
-  timestamp?: string; variance?: number; isFavorable?: boolean
+
+interface AskResponse {
+  sessionId: string | null
+  messageId: string
+  question: string
+  answer: string
+  citations: AskCitation[]
+  agentId: string
+  latencyMs: number
+  tokens: number
+  createdAt: string
 }
-interface Assumption {
-  key: string; description: string; category: string
-  confidence: number; assumedValue: string; overridable: boolean
-}
-interface Caveat { key: string; description: string; severity: "info" | "warning" | "critical"; referenceSlug?: string }
-interface PipelineStep {
-  step: string; status: "ok" | "skipped" | "warned" | "failed"
-  detail: string; elapsedMs: number; output?: Record<string, unknown>
-}
-interface QueryPlan {
-  metrics: MetricRef[]; groupBy: string[]; filters: unknown[]
-  timeRange?: { start: string; end: string; label?: string }
-  limit?: number; sortDirection?: string; seriesGranularity?: string
-}
-interface AnalyticsResponse {
-  traceId: string; sessionId: string; messageId: string; createdAt: string
-  rawQuestion: string; intent: string; confidence: number
-  confidenceTier: "high" | "medium" | "low"
-  answerText: string; queryPlan?: QueryPlan; mockData?: MockDataPoint[]
-  sourceMetrics: MetricRef[]; assumptions: Assumption[]; caveats: Caveat[]
-  clarificationRequired?: { message: string; dimensions: unknown[] }
-  abstained: boolean; abstentionReason?: string; abstentionMessage?: string
-  pipelineTrace: PipelineStep[]; latencyMs: number
-}
+
 interface ChatMessage {
-  id: string; role: "user" | "assistant"; content: string; response?: AnalyticsResponse
+  id: string
+  role: "user" | "assistant"
+  content: string
+  askResponse?: AskResponse
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -62,319 +55,318 @@ interface ChatMessage {
 const BASE = import.meta.env.BASE_URL
 const apiUrl = (path: string) => `${BASE}api${path}`
 
-const INTENT_CONFIG: Record<string, { label: string; color: string }> = {
-  metric_lookup:          { label: "Metric Lookup",  color: "bg-blue-500/10 text-blue-500 border-blue-500/20" },
-  trend_analysis:         { label: "Trend",          color: "bg-violet-500/10 text-violet-500 border-violet-500/20" },
-  variance_analysis:      { label: "Variance",       color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  comparison:             { label: "Comparison",     color: "bg-cyan-500/10 text-cyan-500 border-cyan-500/20" },
-  ranking:                { label: "Ranking",        color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  cohort_question:        { label: "Cohort",         color: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20" },
-  clarification_required: { label: "Clarification", color: "bg-orange-500/10 text-orange-500 border-orange-500/20" },
-  unsupported_request:    { label: "Unsupported",   color: "bg-red-500/10 text-red-500 border-red-500/20" },
-}
-
-const TIER_CONFIG: Record<string, { label: string; color: string }> = {
-  high:   { label: "High confidence",   color: "text-emerald-500" },
-  medium: { label: "Medium confidence", color: "text-amber-500" },
-  low:    { label: "Low confidence",    color: "text-red-500" },
-}
-
-const STEP_ICONS: Record<string, React.ElementType> = {
-  receive: MessageSquare, normalise: SlidersHorizontal,
-  classify_intent: Layers, extract_entities: Database,
-  resolve_metrics: BookOpen, build_query_plan: GitBranch,
-  check_abstention: ShieldAlert, check_guardrails: CheckCircle2,
-  fetch_mock_data: FlaskConical, format_answer: Sparkles,
-  build_response: CheckCircle2,
-}
-
 const SUGGESTED_PROMPTS = [
-  "What is our current ARR?",
-  "How has gross margin trended over the last 6 months?",
-  "Why did we miss the Q3 revenue budget?",
-  "Compare EMEA vs APAC revenue for Q3.",
-  "Top 10 customers by ARR.",
-  "Write me a SQL query to get revenue.",
+  "What was our gross margin and revenue performance in Q3 FY2025?",
+  "Summarise the Q3 close memo — any risks?",
+  "What were the key audit findings and remediation plans?",
+  "What SOX controls are documented in the audit workpapers?",
+  "Explain our revenue recognition policy under ASC 606.",
+  "What was our ARR bridge for Q3?",
 ]
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ConfidenceBar
-// ─────────────────────────────────────────────────────────────────────────────
-
-function ConfidenceBar({ value, tier }: { value: number; tier: string }) {
-  const pct = Math.round(value * 100)
-  const color =
-    tier === "high" ? "bg-emerald-500" : tier === "medium" ? "bg-amber-500" : "bg-red-500"
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
-        <div className={cn("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
-      </div>
-      <span className={cn("text-xs font-medium tabular-nums", TIER_CONFIG[tier]?.color)}>{pct}%</span>
-    </div>
-  )
+const SENSITIVITY_COLORS: Record<string, string> = {
+  public:        "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  internal:      "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  confidential:  "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  restricted:    "bg-red-500/10 text-red-600 border-red-500/20",
+  mnpi:          "bg-purple-500/10 text-purple-600 border-purple-500/20",
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DataTable
+// Markdown-lite renderer
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DataTable({ points }: { points: MockDataPoint[] }) {
-  const hasVariance = points.some((p) => p.variance !== undefined)
-  return (
-    <div className="rounded-md border border-border overflow-hidden">
-      <table className="w-full text-xs">
-        <thead className="bg-muted/50">
-          <tr>
-            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Label</th>
-            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Value</th>
-            {hasVariance && (
-              <th className="text-right px-3 py-2 font-medium text-muted-foreground">Variance</th>
-            )}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {points.map((pt, i) => (
-            <tr key={i} className="hover:bg-muted/30">
-              <td className="px-3 py-2 font-medium">{pt.label}</td>
-              <td className="px-3 py-2 text-right font-mono">
-                {pt.formattedValue ?? String(pt.value)}
-              </td>
-              {hasVariance && (
-                <td
-                  className={cn(
-                    "px-3 py-2 text-right font-mono",
-                    pt.variance !== undefined
-                      ? pt.isFavorable
-                        ? "text-emerald-500"
-                        : "text-red-500"
-                      : ""
-                  )}
-                >
-                  {pt.variance !== undefined
-                    ? `${pt.isFavorable ? "▲" : "▼"} ${Math.abs(pt.variance).toLocaleString()}`
-                    : "—"}
-                </td>
-              )}
-            </tr>
+function MarkdownLite({ text }: { text: string }) {
+  const lines = text.split("\n")
+  const nodes: React.ReactNode[] = []
+  let listItems: string[] = []
+  let key = 0
+
+  const flushList = () => {
+    if (listItems.length) {
+      nodes.push(
+        <ul key={key++} className="list-disc pl-5 space-y-0.5 my-1.5">
+          {listItems.map((item, i) => (
+            <li key={i} className="text-sm leading-relaxed">
+              <InlineText text={item} />
+            </li>
           ))}
-        </tbody>
-      </table>
+        </ul>
+      )
+      listItems = []
+    }
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (!trimmed) {
+      flushList()
+      nodes.push(<div key={key++} className="h-1.5" />)
+      continue
+    }
+    if (/^#{1,3}\s/.test(trimmed)) {
+      flushList()
+      const content = trimmed.replace(/^#{1,3}\s/, "")
+      nodes.push(
+        <p key={key++} className="text-sm font-semibold text-foreground mt-3 mb-1 first:mt-0">
+          <InlineText text={content} />
+        </p>
+      )
+      continue
+    }
+    if (/^[-*•]\s/.test(trimmed)) {
+      listItems.push(trimmed.replace(/^[-*•]\s/, ""))
+      continue
+    }
+    if (/^\d+\.\s/.test(trimmed)) {
+      listItems.push(trimmed.replace(/^\d+\.\s/, ""))
+      continue
+    }
+    flushList()
+    nodes.push(
+      <p key={key++} className="text-sm leading-relaxed">
+        <InlineText text={trimmed} />
+      </p>
+    )
+  }
+  flushList()
+  return <div className="space-y-0.5">{nodes}</div>
+}
+
+function InlineText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/)
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (p.startsWith("**") && p.endsWith("**"))
+          return <strong key={i} className="font-semibold text-foreground">{p.slice(2, -2)}</strong>
+        if (p.startsWith("*") && p.endsWith("*"))
+          return <em key={i}>{p.slice(1, -1)}</em>
+        return <span key={i}>{p}</span>
+      })}
+    </>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Score bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ScoreBar({ score }: { score: number }) {
+  const pct = Math.round(score * 100)
+  const color = score >= 0.7 ? "bg-emerald-500" : score >= 0.45 ? "bg-amber-500" : "bg-muted-foreground"
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={cn(
+        "text-[10px] font-mono tabular-nums shrink-0",
+        score >= 0.7 ? "text-emerald-500" : score >= 0.45 ? "text-amber-500" : "text-muted-foreground"
+      )}>
+        {pct}%
+      </span>
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Pipeline Inspector
+// Citation card
 // ─────────────────────────────────────────────────────────────────────────────
 
-function PipelineInspector({ response }: { response: AnalyticsResponse }) {
-  const [openSteps, setOpenSteps] = useState<Set<string>>(new Set())
+function CitationCard({
+  citation,
+  index,
+  compact = false,
+}: {
+  citation: AskCitation
+  index: number
+  compact?: boolean
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const excerptLimit = compact ? 120 : 220
+  const longExcerpt = citation.excerpt.length > excerptLimit
+  const displayExcerpt = expanded || !longExcerpt
+    ? citation.excerpt
+    : citation.excerpt.slice(0, excerptLimit) + "…"
 
-  const toggleStep = (step: string) =>
-    setOpenSteps((prev) => {
-      const next = new Set(prev)
-      next.has(step) ? next.delete(step) : next.add(step)
-      return next
-    })
+  const sensitivity = citation.sensitivityLevel ?? "internal"
+  const sensitivityColor = SENSITIVITY_COLORS[sensitivity] ?? SENSITIVITY_COLORS.internal
 
-  const intent = INTENT_CONFIG[response.intent]
-  const tier = TIER_CONFIG[response.confidenceTier]
+  const docLabel = citation.documentTitle.startsWith("doc-")
+    ? citation.documentTitle
+        .replace("doc-", "")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+    : citation.documentTitle
+
+  return (
+    <div className="rounded-lg border border-border bg-background/60 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-start gap-2.5 px-3 py-2.5">
+        {/* Number badge */}
+        <div className="w-5 h-5 rounded-full bg-primary/15 text-primary flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+          {index}
+        </div>
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-xs font-medium text-foreground leading-tight line-clamp-2">{docLabel}</p>
+            <div className="flex items-center gap-1 shrink-0">
+              {citation.pageNumber && (
+                <span className="text-[10px] text-muted-foreground">p.{citation.pageNumber}</span>
+              )}
+              <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 h-4 font-medium border", sensitivityColor)}>
+                <Lock className="h-2 w-2 mr-0.5" />
+                {sensitivity}
+              </Badge>
+            </div>
+          </div>
+          <ScoreBar score={citation.relevanceScore} />
+        </div>
+      </div>
+
+      {/* Excerpt */}
+      <div className="px-3 pb-2.5 space-y-1.5">
+        <div className="rounded bg-muted/40 px-2.5 py-2">
+          <p className="text-[11px] text-muted-foreground leading-relaxed font-mono">{displayExcerpt}</p>
+        </div>
+        {longExcerpt && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
+          >
+            {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+            {expanded ? "Show less" : "Show more"}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sources panel (inline below answer)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SourcesPanel({ citations }: { citations: AskCitation[] }) {
+  const [open, setOpen] = useState(true)
+  if (!citations.length) return null
+  return (
+    <div className="mt-2 space-y-1.5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+      >
+        <BookOpen className="h-3.5 w-3.5 text-primary" />
+        <span className="font-medium">
+          {citations.length} source{citations.length > 1 ? "s" : ""}
+        </span>
+        {open
+          ? <ChevronDown className="h-3 w-3 group-hover:text-foreground" />
+          : <ChevronRight className="h-3 w-3 group-hover:text-foreground" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="space-y-1.5 overflow-hidden"
+          >
+            {citations.map((c, i) => (
+              <CitationCard key={c.id} citation={c} index={i + 1} compact />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sources inspector sidebar panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SourcesInspector({ citations, latencyMs, tokens }: { citations: AskCitation[]; latencyMs: number; tokens: number }) {
+  if (!citations.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 text-center space-y-2 text-muted-foreground">
+        <BookOpen className="h-8 w-8 opacity-20" />
+        <p className="text-sm font-medium">No sources retrieved</p>
+        <p className="text-xs leading-relaxed">
+          No document passages matched this query above the relevance threshold.
+        </p>
+      </div>
+    )
+  }
+
+  const topScore = citations[0]?.relevanceScore ?? 0
+  const avgScore = citations.reduce((s, c) => s + c.relevanceScore, 0) / citations.length
+  const uniqueDocs = new Set(citations.map((c) => c.documentId)).size
 
   return (
     <div className="space-y-4 text-sm">
-      {/* Intent + confidence */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Intent
-          </span>
-          <Badge variant="outline" className={cn("text-[10px] px-2", intent?.color)}>
-            {intent?.label ?? response.intent}
-          </Badge>
-        </div>
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{tier?.label}</span>
-            <span className="font-mono">{response.latencyMs}ms</span>
+      {/* Stats row */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Sources", value: citations.length },
+          { label: "Documents", value: uniqueDocs },
+          { label: "Latency", value: `${latencyMs}ms` },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-md bg-muted/40 border border-border px-2.5 py-2 text-center">
+            <p className="text-xs font-semibold tabular-nums">{value}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{label}</p>
           </div>
-          <ConfidenceBar value={response.confidence} tier={response.confidenceTier} />
-        </div>
+        ))}
       </div>
 
-      {/* Abstention */}
-      {response.abstained && (
-        <div className="rounded-md border border-red-500/20 bg-red-500/5 p-3 space-y-1">
-          <div className="flex items-center gap-2 text-red-500 font-medium text-xs">
-            <ShieldAlert className="h-3.5 w-3.5" />
-            Abstained — {response.abstentionReason?.replace(/_/g, " ")}
-          </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {response.abstentionMessage}
-          </p>
-        </div>
-      )}
-
-      {/* Source metrics */}
-      {response.sourceMetrics.length > 0 && (
-        <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Source Metrics
-          </span>
-          {response.sourceMetrics.map((m) => (
-            <div key={m.slug} className="flex items-start justify-between gap-2">
-              <div>
-                <span className="font-medium text-xs">{m.label}</span>
-                <div className="flex gap-1.5 mt-0.5">
-                  <Badge variant="secondary" className="text-[9px] px-1 py-0">
-                    {m.domain}
-                  </Badge>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0">
-                    {m.matchType}
-                  </Badge>
-                </div>
-              </div>
-              <span
-                className={cn(
-                  "text-[10px] font-mono",
-                  m.resolutionConfidence > 0.8 ? "text-emerald-500" : "text-amber-500"
-                )}
-              >
-                {Math.round(m.resolutionConfidence * 100)}%
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Query plan */}
-      {response.queryPlan && (
-        <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Query Plan
-          </span>
-          <div className="rounded-md bg-muted/40 border border-border divide-y divide-border text-xs">
-            {response.queryPlan.timeRange && (
-              <div className="px-3 py-2 flex justify-between">
-                <span className="text-muted-foreground">Period</span>
-                <span className="font-medium">
-                  {response.queryPlan.timeRange.label ??
-                    `${response.queryPlan.timeRange.start} → ${response.queryPlan.timeRange.end}`}
-                </span>
-              </div>
-            )}
-            {(response.queryPlan.groupBy?.length ?? 0) > 0 && (
-              <div className="px-3 py-2 flex justify-between">
-                <span className="text-muted-foreground">Group by</span>
-                <span className="font-mono">{response.queryPlan.groupBy.join(", ")}</span>
-              </div>
-            )}
-            {response.queryPlan.limit && (
-              <div className="px-3 py-2 flex justify-between">
-                <span className="text-muted-foreground">Limit</span>
-                <span className="font-mono">TOP {response.queryPlan.limit}</span>
-              </div>
-            )}
-            {response.queryPlan.seriesGranularity && (
-              <div className="px-3 py-2 flex justify-between">
-                <span className="text-muted-foreground">Granularity</span>
-                <span className="font-mono">{response.queryPlan.seriesGranularity}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Assumptions */}
-      {response.assumptions.length > 0 && (
-        <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Assumptions
-          </span>
-          {response.assumptions.map((a) => (
-            <div key={a.key} className="flex items-start gap-2 text-xs">
-              <Info className="h-3 w-3 mt-0.5 text-blue-500 shrink-0" />
-              <span className="text-muted-foreground leading-relaxed">{a.description}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Caveats */}
-      {response.caveats.length > 0 && (
-        <div className="space-y-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Caveats
-          </span>
-          {response.caveats.map((c) => (
-            <div key={c.key} className="flex items-start gap-2 text-xs">
-              {c.severity === "critical" ? (
-                <AlertCircle className="h-3 w-3 mt-0.5 text-red-500 shrink-0" />
-              ) : c.severity === "warning" ? (
-                <AlertTriangle className="h-3 w-3 mt-0.5 text-amber-500 shrink-0" />
-              ) : (
-                <Info className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
-              )}
-              <span className="text-muted-foreground leading-relaxed">{c.description}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pipeline trace */}
-      <div className="space-y-1">
+      {/* Score summary */}
+      <div className="space-y-1.5">
         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Pipeline Trace
+          Relevance
         </span>
-        {response.pipelineTrace.map((step) => {
-          const Icon = STEP_ICONS[step.step] ?? CheckCircle2
-          const open = openSteps.has(step.step)
-          const statusColor =
-            step.status === "ok"
-              ? "text-emerald-500"
-              : step.status === "warned"
-              ? "text-amber-500"
-              : step.status === "skipped"
-              ? "text-muted-foreground"
-              : "text-red-500"
-          return (
-            <div key={step.step} className="rounded border border-border overflow-hidden">
-              <button
-                className="w-full flex items-center gap-2 px-2.5 py-2 text-left hover:bg-muted/40 transition-colors"
-                onClick={() => toggleStep(step.step)}
-              >
-                <Icon className={cn("h-3 w-3 shrink-0", statusColor)} />
-                <span className="flex-1 text-xs font-mono">{step.step}</span>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
-                  {step.elapsedMs}ms
-                </span>
-                {open ? (
-                  <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-3 w-3 text-muted-foreground" />
-                )}
-              </button>
-              {open && (
-                <div className="px-2.5 py-2 bg-muted/30 border-t border-border space-y-1">
-                  <p className="text-[10px] text-muted-foreground">{step.detail}</p>
-                  {step.output && (
-                    <pre className="overflow-auto max-h-28 text-[9px] font-mono bg-background/50 rounded p-1.5">
-                      {JSON.stringify(step.output, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
+        <div className="rounded-md bg-muted/40 border border-border divide-y divide-border text-xs">
+          <div className="px-3 py-2 flex justify-between">
+            <span className="text-muted-foreground">Top score</span>
+            <span className="font-mono">{(topScore * 100).toFixed(1)}%</span>
+          </div>
+          <div className="px-3 py-2 flex justify-between">
+            <span className="text-muted-foreground">Avg score</span>
+            <span className="font-mono">{(avgScore * 100).toFixed(1)}%</span>
+          </div>
+          <div className="px-3 py-2 flex justify-between">
+            <span className="text-muted-foreground">Tokens</span>
+            <span className="font-mono">{tokens}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Trace ID */}
-      <div className="pt-1 border-t border-border">
-        <p className="text-[10px] text-muted-foreground font-mono break-all">
-          trace: {response.traceId}
-        </p>
+      {/* Full citation list */}
+      <div className="space-y-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Retrieved passages
+        </span>
+        {citations.map((c, i) => (
+          <CitationCard key={c.id} citation={c} index={i + 1} />
+        ))}
       </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty inspector placeholder
+// ─────────────────────────────────────────────────────────────────────────────
+
+function InspectorEmpty() {
+  return (
+    <div className="flex flex-col items-center justify-center h-48 text-center space-y-2 text-muted-foreground">
+      <Sparkles className="h-8 w-8 opacity-20" />
+      <p className="text-sm font-medium">Grounded AI Inspector</p>
+      <p className="text-xs leading-relaxed max-w-[220px]">
+        Ask a question — Claude retrieves relevant document passages and grounds its answer in them.
+        Click any response to inspect its sources.
+      </p>
     </div>
   )
 }
@@ -392,20 +384,8 @@ function AssistantBubble({
   isActive: boolean
   onSelect: () => void
 }) {
-  const resp = msg.response
-  const hasData = (resp?.mockData?.length ?? 0) > 0
-  const [tab, setTab] = useState<"answer" | "data">("answer")
-
-  const renderText = (text: string) =>
-    text.split(/(\*\*[^*]+\*\*)/).map((p, i) =>
-      p.startsWith("**") && p.endsWith("**") ? (
-        <strong key={i} className="font-semibold text-foreground">
-          {p.slice(2, -2)}
-        </strong>
-      ) : (
-        <span key={i}>{p}</span>
-      )
-    )
+  const resp = msg.askResponse
+  const hasCitations = (resp?.citations.length ?? 0) > 0
 
   return (
     <motion.div
@@ -417,52 +397,31 @@ function AssistantBubble({
         <Bot className="h-4 w-4" />
       </div>
 
-      <div className="flex-1 min-w-0 space-y-2">
-        {/* Badges */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        {/* Grounded badge */}
         {resp && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className={cn("text-[10px] px-2 py-0.5", INTENT_CONFIG[resp.intent]?.color)}
-            >
-              {INTENT_CONFIG[resp.intent]?.label ?? resp.intent}
-            </Badge>
-            {resp.abstained && (
+            {hasCitations ? (
               <Badge
                 variant="outline"
-                className="text-[10px] px-2 py-0.5 bg-red-500/10 text-red-500 border-red-500/20"
+                className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20"
               >
-                <ShieldAlert className="h-2.5 w-2.5 mr-1" />
-                Abstained
+                <BookOpen className="h-2.5 w-2.5 mr-1" />
+                Grounded · {resp.citations.length} source{resp.citations.length > 1 ? "s" : ""}
               </Badge>
-            )}
-            {resp.assumptions?.length > 0 && (
+            ) : (
               <Badge
                 variant="outline"
-                className="text-[10px] px-2 py-0.5 bg-blue-500/10 text-blue-500 border-blue-500/20"
-              >
-                <Info className="h-2.5 w-2.5 mr-1" />
-                {resp.assumptions.length} assumption{resp.assumptions.length > 1 ? "s" : ""}
-              </Badge>
-            )}
-            {resp.caveats?.length > 0 && (
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[10px] px-2 py-0.5",
-                  resp.caveats.some((c) => c.severity === "critical")
-                    ? "bg-red-500/10 text-red-500 border-red-500/20"
-                    : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-                )}
+                className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20"
               >
                 <AlertTriangle className="h-2.5 w-2.5 mr-1" />
-                {resp.caveats.length} caveat{resp.caveats.length > 1 ? "s" : ""}
+                Ungrounded
               </Badge>
             )}
           </div>
         )}
 
-        {/* Bubble */}
+        {/* Answer bubble */}
         <div
           className={cn(
             "bg-muted rounded-2xl rounded-tl-sm px-4 py-3 cursor-pointer transition-all",
@@ -470,32 +429,21 @@ function AssistantBubble({
           )}
           onClick={onSelect}
         >
-          {hasData ? (
-            <Tabs value={tab} onValueChange={(v) => setTab(v as "answer" | "data")}>
-              <TabsList className="mb-3 h-7">
-                <TabsTrigger value="answer" className="text-xs h-6">
-                  Answer
-                </TabsTrigger>
-                <TabsTrigger value="data" className="text-xs h-6">
-                  Data ({resp!.mockData!.length})
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="answer">
-                <p className="text-sm leading-relaxed">{renderText(msg.content)}</p>
-              </TabsContent>
-              <TabsContent value="data">
-                <DataTable points={resp!.mockData!} />
-              </TabsContent>
-            </Tabs>
-          ) : (
-            <p className="text-sm leading-relaxed">{renderText(msg.content)}</p>
-          )}
+          <MarkdownLite text={msg.content} />
         </div>
 
+        {/* Citations */}
+        {resp && hasCitations && (
+          <div className="pl-0">
+            <SourcesPanel citations={resp.citations} />
+          </div>
+        )}
+
+        {/* Footer */}
         {resp && (
           <p className="text-[10px] text-muted-foreground px-1">
-            {Math.round(resp.confidence * 100)}% confidence · {resp.latencyMs}ms
-            {isActive ? " · Inspector active →" : " · Click to inspect pipeline"}
+            {resp.latencyMs}ms · {resp.tokens} tokens
+            {isActive ? " · Inspector active →" : " · Click to inspect sources"}
           </p>
         )}
       </div>
@@ -513,30 +461,32 @@ export function AskPage() {
       id: "welcome",
       role: "assistant",
       content:
-        "Hello. Ask any finance question — I'll classify the intent, build a semantic query plan, check abstention policy, and return a fully traceable answer. Click any response to inspect the pipeline.",
+        "Hello. Ask any finance question — I'll retrieve the most relevant passages from the document corpus and ground my answer in them. Each response includes numbered sources you can expand to read the original excerpt.",
     },
   ])
   const [input, setInput] = useState("")
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null)
-  const [inspectorTab, setInspectorTab] = useState<"inspector" | "examples">("inspector")
+  const [inspectorTab, setInspectorTab] = useState<"sources" | "examples">("sources")
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const activeResponse = messages.find((m) => m.id === activeMessageId)?.response
+  const activeMessage = messages.find((m) => m.id === activeMessageId)
+  const activeResp = activeMessage?.askResponse
 
   const { data: examplesData } = useQuery({
-    queryKey: ["/api/analytics/examples", "sidebar"],
+    queryKey: ["/api/ask/sessions"],
     queryFn: async () => {
-      const res = await fetch(apiUrl("/analytics/examples?limit=30"))
-      if (!res.ok) throw new Error("Failed to fetch examples")
+      const res = await fetch(apiUrl("/ask/sessions"))
+      if (!res.ok) throw new Error("Failed to fetch sessions")
       return res.json() as Promise<{
-        data: Array<{ id: string; prompt: string; expected: { intent: string; tags: string[] } }>
+        data: Array<{ id: string; title: string; messageCount: number; updatedAt: string }>
+        total: number
       }>
     },
   })
 
   const submitMutation = useMutation({
-    mutationFn: async (question: string): Promise<AnalyticsResponse> => {
-      const res = await fetch(apiUrl("/analytics/answer"), {
+    mutationFn: async (question: string): Promise<AskResponse> => {
+      const res = await fetch(apiUrl("/ask"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),
@@ -560,20 +510,15 @@ export function AskPage() {
 
     submitMutation.mutate(question, {
       onSuccess: (data) => {
-        const content = data.abstained
-          ? (data.abstentionMessage ?? "I'm unable to answer that request.")
-          : data.clarificationRequired
-          ? data.clarificationRequired.message
-          : data.answerText
         const assistantMsg: ChatMessage = {
           id: `a-${Date.now()}`,
           role: "assistant",
-          content,
-          response: data,
+          content: data.answer,
+          askResponse: data,
         }
         setMessages((prev) => [...prev, assistantMsg])
         setActiveMessageId(assistantMsg.id)
-        setInspectorTab("inspector")
+        setInspectorTab("sources")
       },
       onError: () => {
         setMessages((prev) => [
@@ -613,7 +558,7 @@ export function AskPage() {
                     isActive={msg.id === activeMessageId}
                     onSelect={() => {
                       setActiveMessageId(msg.id)
-                      setInspectorTab("inspector")
+                      setInspectorTab("sources")
                     }}
                   />
                 )
@@ -627,14 +572,20 @@ export function AskPage() {
                   <div className="w-8 h-8 rounded bg-primary/15 flex items-center justify-center text-primary flex-shrink-0">
                     <Bot className="h-4 w-4" />
                   </div>
-                  <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-                    {[0, 150, 300].map((d) => (
-                      <div
-                        key={d}
-                        className="w-1.5 h-1.5 bg-current rounded-full animate-bounce"
-                        style={{ animationDelay: `${d}ms` }}
-                      />
-                    ))}
+                  <div className="bg-muted rounded-2xl rounded-tl-sm px-4 py-3 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Retrieving relevant passages…
+                    </div>
+                    <div className="flex gap-1">
+                      {[0, 150, 300].map((d) => (
+                        <div
+                          key={d}
+                          className="w-1.5 h-1.5 bg-current rounded-full animate-bounce opacity-40"
+                          style={{ animationDelay: `${d}ms` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -649,7 +600,8 @@ export function AskPage() {
               key={p}
               onClick={() => handleSubmit(p)}
               disabled={submitMutation.isPending}
-              className="flex-shrink-0 text-xs text-muted-foreground bg-muted/60 hover:bg-muted rounded-full px-3 py-1.5 transition-colors border border-border disabled:opacity-50"
+              className="flex-shrink-0 text-xs text-muted-foreground bg-muted/60 hover:bg-muted rounded-full px-3 py-1.5 transition-colors border border-border disabled:opacity-50 max-w-[260px] truncate"
+              title={p}
             >
               {p}
             </button>
@@ -659,10 +611,7 @@ export function AskPage() {
         {/* Input bar */}
         <div className="p-4 border-t border-border">
           <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSubmit()
-            }}
+            onSubmit={(e) => { e.preventDefault(); handleSubmit() }}
             className="relative flex items-center"
           >
             <Input
@@ -689,11 +638,11 @@ export function AskPage() {
         </div>
       </div>
 
-      {/* ── Pipeline Inspector sidebar ──────────────────────────────────── */}
+      {/* ── Inspector sidebar ───────────────────────────────────────────── */}
       <div className="w-80 xl:w-96 flex flex-col flex-shrink-0 bg-card border border-border rounded-xl overflow-hidden">
         {/* Tabs */}
         <div className="flex border-b border-border">
-          {(["inspector", "examples"] as const).map((t) => (
+          {(["sources", "examples"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setInspectorTab(t)}
@@ -704,15 +653,20 @@ export function AskPage() {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {t === "inspector" ? (
+              {t === "sources" ? (
                 <>
-                  <GitBranch className="h-3.5 w-3.5" />
-                  Pipeline
+                  <BookOpen className="h-3.5 w-3.5" />
+                  Sources
+                  {activeResp && activeResp.citations.length > 0 && (
+                    <span className="ml-0.5 rounded-full bg-primary/15 text-primary text-[10px] px-1.5 py-0 font-semibold">
+                      {activeResp.citations.length}
+                    </span>
+                  )}
                 </>
               ) : (
                 <>
-                  <FlaskConical className="h-3.5 w-3.5" />
-                  Examples
+                  <FileText className="h-3.5 w-3.5" />
+                  Sessions
                 </>
               )}
             </button>
@@ -720,56 +674,54 @@ export function AskPage() {
         </div>
 
         <ScrollArea className="flex-1 p-4">
-          {inspectorTab === "inspector" ? (
-            activeResponse ? (
-              <PipelineInspector response={activeResponse} />
+          {inspectorTab === "sources" ? (
+            activeResp ? (
+              <SourcesInspector
+                citations={activeResp.citations}
+                latencyMs={activeResp.latencyMs}
+                tokens={activeResp.tokens}
+              />
             ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-center space-y-2 text-muted-foreground">
-                <GitBranch className="h-8 w-8 opacity-20" />
-                <p className="text-sm font-medium">Pipeline Inspector</p>
-                <p className="text-xs leading-relaxed">
-                  Ask a question or click any assistant response to inspect its intent, query plan,
-                  assumptions, caveats, and step-by-step pipeline trace.
-                </p>
-              </div>
+              <InspectorEmpty />
             )
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground pb-1">
-                {examplesData?.data.length ?? 0} example prompts with expected parsed outputs. Click
-                to run any.
+                Recent sessions — click a prompt to run it.
               </p>
-              {(examplesData?.data ?? []).map((ex) => (
-                <button
-                  key={ex.id}
-                  onClick={() => handleSubmit(ex.prompt)}
-                  disabled={submitMutation.isPending}
-                  className="w-full text-left rounded-md border border-border p-2.5 hover:bg-muted/40 transition-colors space-y-1 disabled:opacity-50"
-                >
+              {(examplesData?.data ?? []).length === 0 && (
+                <p className="text-xs text-muted-foreground italic">No sessions yet.</p>
+              )}
+              {(examplesData?.data ?? []).map((s) => (
+                <Card key={s.id} className="p-2.5 hover:bg-muted/40 transition-colors">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="text-xs leading-relaxed text-foreground">{ex.prompt}</p>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "text-[9px] px-1 py-0 shrink-0 mt-0.5",
-                        INTENT_CONFIG[ex.expected.intent]?.color
-                      )}
-                    >
-                      {INTENT_CONFIG[ex.expected.intent]?.label ?? ex.expected.intent}
-                    </Badge>
+                    <p className="text-xs font-medium leading-relaxed">{s.title}</p>
+                    <Badge variant="secondary" className="text-[9px] shrink-0">{s.messageCount} msg</Badge>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    {ex.expected.tags.slice(0, 3).map((t) => (
-                      <span
-                        key={t}
-                        className="text-[9px] text-muted-foreground bg-muted rounded px-1"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </button>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {new Date(s.updatedAt).toLocaleDateString()}
+                  </p>
+                </Card>
               ))}
+
+              <div className="pt-3 border-t border-border">
+                <p className="text-xs text-muted-foreground font-medium mb-2">Try these questions:</p>
+                <div className="space-y-1.5">
+                  {SUGGESTED_PROMPTS.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => handleSubmit(p)}
+                      disabled={submitMutation.isPending}
+                      className="w-full text-left rounded-md border border-border px-3 py-2 hover:bg-muted/40 transition-colors disabled:opacity-50"
+                    >
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+                        <p className="text-xs leading-relaxed text-foreground">{p}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </ScrollArea>
