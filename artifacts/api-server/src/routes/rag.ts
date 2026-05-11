@@ -14,6 +14,7 @@ import {
   DocumentTypeSchema,
 } from "@financeos/rag";
 import { BedrockLlmAdapter } from "@financeos/adapters";
+import { container } from "@financeos/container";
 
 const router = Router();
 
@@ -176,6 +177,57 @@ router.post("/rag/search", async (req, res, next) => {
     }
   }
 
+  // ── Real pgvector search ─────────────────────────────────────────────────
+  // When both the embedding and a live vector store are available, run a real
+  // cosine-similarity search instead of the mock keyword approximation.
+  if (queryEmbedding && !container.isStub("vectorStore")) {
+    try {
+      const vectorStore = container.get("vectorStore");
+      const vectorFilter: Record<string, unknown> = { tenantId: DEFAULT_TENANT };
+      if (filters["documentTypes"]) vectorFilter["documentTypes"] = filters["documentTypes"];
+      if (filters["tablesOnly"]) vectorFilter["tablesOnly"] = true;
+
+      const results = await vectorStore.search({
+        queryEmbedding,
+        topK: (options["citation"] as Record<string, number> | undefined)?.["maxCitations"] ?? 5,
+        minScore: (options["citation"] as Record<string, number> | undefined)?.["minScore"] ?? 0.1,
+        filter: vectorFilter,
+        requestId: res.locals.requestId,
+      });
+
+      req.log.info(
+        { resultCount: results.length, requestId: res.locals.requestId },
+        "pgvector search",
+      );
+
+      const citations = results.map((r) => ({
+        id: randomUUID(),
+        documentId: r.document.metadata.documentId,
+        documentTitle: r.document.metadata.documentTitle ?? r.document.metadata.documentId,
+        chunkIndex: r.document.metadata.chunkIndex ?? 0,
+        pageNumber: r.document.metadata.pageNumber ?? null,
+        excerpt: r.document.content.slice(0, 500),
+        relevanceScore: r.score,
+        queryId: randomUUID(),
+        sensitivityLevel: r.document.metadata.sensitivityLevel,
+      }));
+
+      return res.json({
+        answer: citations.length > 0
+          ? `Found ${citations.length} relevant passage${citations.length === 1 ? "" : "s"} via semantic search.`
+          : "No matching passages found in the document corpus for this query.",
+        citations,
+        sessionId: null,
+        retrievalMode: "dense",
+        provider: "pgvector",
+        _embedding: embeddingMeta ? { provider: "bedrock", ...embeddingMeta } : undefined,
+      });
+    } catch (err) {
+      req.log.warn({ err }, "pgvector search failed — falling back to mock retriever");
+    }
+  }
+
+  // ── Mock fallback ─────────────────────────────────────────────────────────
   const request = buildRequest(question, filters, options);
   const answer = mockRetrieve(request);
 

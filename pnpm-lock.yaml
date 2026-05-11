@@ -159,6 +159,13 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      '@types/pg':
+        specifier: ^8.18.0
+        version: 8.18.0
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
     devDependencies:
       prettier:
         specifier: ^3.8.1
@@ -681,6 +688,9 @@ importers:
       '@financeos/shared':
         specifier: workspace:*
         version: link:../shared
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       zod:
         specifier: 'catalog:'
         version: 3.25.76
@@ -688,6 +698,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.3.5
+      '@types/pg':
+        specifier: ^8.18.0
+        version: 8.18.0
       typescript:
         specifier: ~5.9.2
         version: 5.9.3
