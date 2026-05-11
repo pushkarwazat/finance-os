@@ -6,8 +6,15 @@ import type {
 } from "./contracts.js";
 import type { DocumentAnswer } from "../citations/schema.js";
 import { MOCK_CHUNKS } from "../fixtures/chunks.js";
-import { MOCK_DOCUMENTS_MAP } from "../fixtures/documents.js";
+import { RAG_DOCUMENTS } from "../fixtures/documents.js";
 import { DOCUMENT_TYPE_META } from "../documents/schema.js";
+import type { FinanceDocument } from "../documents/schema.js";
+
+type DocumentTypeMeta = typeof DOCUMENT_TYPE_META;
+
+const DOCUMENTS_BY_ID = new Map<string, FinanceDocument>(
+  RAG_DOCUMENTS.map((d) => [d.id, d])
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Deterministic keyword scorer (BM25-like cosine approximation)
@@ -106,9 +113,11 @@ export function mockRetrieve(request: RetrievalRequest): DocumentAnswer {
     .slice(0, maxCitations)
     .map((sc, i) => {
       const chunk = sc.chunk as (typeof MOCK_CHUNKS)[number];
-      const doc = MOCK_DOCUMENTS_MAP[chunk.documentId];
+      const doc = DOCUMENTS_BY_ID.get(chunk.documentId);
       const excerpt = chunk.chunkText.substring(0, maxExcerpt);
-      const docType = doc ? DOCUMENT_TYPE_META[doc.type]?.label ?? doc.type : "document";
+      const docType = doc
+        ? (DOCUMENT_TYPE_META as DocumentTypeMeta)[doc.type as keyof DocumentTypeMeta]?.label ?? doc.type
+        : "document";
       return {
         citationId: randomUUID(),
         citationNumber: i + 1,

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
 import {
-  MOCK_FINANCE_DOCUMENTS,
+  RAG_DOCUMENTS,
   MOCK_CHUNKS,
   RETRIEVAL_EVAL_CASES,
   runEvalSuite,
@@ -83,7 +83,7 @@ router.get("/rag/status", (_req, res) => {
       description: meta.description,
       defaultSensitivity: meta.defaultSensitivity,
     })),
-    indexedDocuments: MOCK_FINANCE_DOCUMENTS.length,
+    indexedDocuments: RAG_DOCUMENTS.length,
     indexedChunks: MOCK_CHUNKS.length,
     tableChunks: MOCK_CHUNKS.filter((c) => c.contentType === "table").length,
   });
@@ -200,7 +200,7 @@ router.get("/rag/documents", (req, res) => {
   }
 
   const { type, sensitivity, search, fiscalYear, limit, offset } = parsed.data;
-  let docs = [...MOCK_FINANCE_DOCUMENTS];
+  let docs = [...RAG_DOCUMENTS];
 
   if (type) docs = docs.filter((d) => d.type === type);
   if (sensitivity) docs = docs.filter((d) => d.sensitivityLevel === sensitivity);
@@ -211,14 +211,14 @@ router.get("/rag/documents", (req, res) => {
       (d) =>
         d.title.toLowerCase().includes(s) ||
         d.filename.toLowerCase().includes(s) ||
-        d.tags.some((t) => t.toLowerCase().includes(s))
+        d.tags.some((t: string) => t.toLowerCase().includes(s))
     );
   }
 
   const total = docs.length;
   const data = docs.slice(offset, offset + limit);
 
-  const byType = MOCK_FINANCE_DOCUMENTS.reduce<Record<string, number>>((acc, d) => {
+  const byType = RAG_DOCUMENTS.reduce<Record<string, number>>((acc, d) => {
     acc[d.type] = (acc[d.type] ?? 0) + 1;
     return acc;
   }, {});
@@ -231,7 +231,7 @@ router.get("/rag/documents", (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.get("/rag/documents/:id", (req, res) => {
-  const doc = MOCK_FINANCE_DOCUMENTS.find((d) => d.id === req.params["id"]);
+  const doc = RAG_DOCUMENTS.find((d) => d.id === req.params["id"]);
   if (!doc) {
     res.status(404).json({ error: "not_found", message: "Document not found" });
     return;
@@ -250,7 +250,7 @@ const ChunksQuerySchema = z.object({
 });
 
 router.get("/rag/documents/:id/chunks", (req, res) => {
-  const doc = MOCK_FINANCE_DOCUMENTS.find((d) => d.id === req.params["id"]);
+  const doc = RAG_DOCUMENTS.find((d) => d.id === req.params["id"]);
   if (!doc) {
     res.status(404).json({ error: "not_found", message: "Document not found" });
     return;
@@ -296,7 +296,7 @@ router.post("/rag/ingest", async (req, res) => {
     return;
   }
 
-  const doc = MOCK_FINANCE_DOCUMENTS.find((d) => d.id === parsed.data.documentId);
+  const doc = RAG_DOCUMENTS.find((d) => d.id === parsed.data.documentId);
   if (!doc) {
     res.status(404).json({ error: "not_found", message: "Document not found" });
     return;

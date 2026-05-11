@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
 import { SubmitQuestionBody, ListAskSessionsQueryParams } from "@workspace/api-zod";
-import { MOCK_DOCUMENTS } from "../data/fixtures.js";
 import { BedrockLlmAdapter } from "@financeos/adapters";
 import { retrievePassages, formatPassagesForPrompt } from "../lib/rag-retriever.js";
 
@@ -97,36 +96,12 @@ const MOCK_QA_STORE: Record<string, { answer: string; citations: unknown[] }> = 
   revenue: {
     answer:
       "Q4 revenue came in at $94.2M, $4.2M below the $98.4M budget. The primary drivers were (1) delayed enterprise contract renewals slipping into Q1 FY2026, accounting for -$3.1M, and (2) lower professional services volume as customers shifted to self-service onboarding, accounting for -$1.1M. ARR, however, exceeded budget at $312M vs. $305M planned, suggesting the core subscription business is healthy.",
-    citations: [
-      {
-        id: randomUUID(),
-        documentId: MOCK_DOCUMENTS[3].id,
-        documentTitle: MOCK_DOCUMENTS[3].title,
-        chunkIndex: 4,
-        pageNumber: 3,
-        excerpt:
-          "Q4 revenue variance of -$4.2M was primarily attributable to three large enterprise renewals that were deferred to Q1 FY2026 due to extended procurement timelines.",
-        relevanceScore: 0.96,
-        queryId: randomUUID(),
-      },
-    ],
+    citations: [],
   },
   audit: {
     answer:
-      "The FY2025 Q4 external audit by Deloitte found no material weaknesses. One significant deficiency was identified related to the timing of revenue recognition controls — specifically, the review process for end-of-period contract modifications needs to be strengthened. Management has committed to remediation by Q2 FY2026.",
-    citations: [
-      {
-        id: randomUUID(),
-        documentId: MOCK_DOCUMENTS[0].id,
-        documentTitle: MOCK_DOCUMENTS[0].title,
-        chunkIndex: 12,
-        pageNumber: 34,
-        excerpt:
-          "We identified one significant deficiency related to controls over the review and approval of revenue recognition adjustments for contracts modified within 30 days of period end.",
-        relevanceScore: 0.98,
-        queryId: randomUUID(),
-      },
-    ],
+      "The FY2025 Q4 external audit found no material weaknesses. One significant deficiency was identified related to the timing of revenue recognition controls — specifically, the review process for end-of-period contract modifications needs to be strengthened. Management has committed to remediation by Q2 FY2026.",
+    citations: [],
   },
 };
 
