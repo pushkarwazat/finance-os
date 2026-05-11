@@ -34,8 +34,8 @@ const MOCK_BOARD_PACKS = [
     approvedAt: "2026-04-09T16:00:00Z",
     status: "approved",
     confidentiality: "board_only",
-    sections: ["Executive Summary", "Revenue & ARR Bridge", "P&L Summary", "Balance Sheet Highlights", "Cash & Liquidity", "Q2 Outlook", "Key Risks & Mitigations"],
-    executiveSummary: "Q1 FY2026 results were in line with revised expectations. Revenue of $23.8M was 4.2% below original budget, driven by 3 enterprise deal slippage. ARR grew 9% QoQ to $340M. EBITDA margin of 16.2% improved 180bps vs Q4 FY2025. Cash runway remains healthy at 18.4 months.",
+    sections: ["Executive Summary", "Insurance Segment: GWP & Commission Bridge", "Pharmacy Segment: Rx Volume & Margin", "Consolidated P&L", "Balance Sheet & Liquidity", "Claims Reserves Update", "Q2 Outlook & Key Risks"],
+    executiveSummary: "Q1 FY2026 consolidated revenue of $98.2M was $1.2M ahead of budget. The insurance segment continued to benefit from hardening market conditions — GWP reached $192.6M (+8.2% vs Q4 FY2025) and commission income of $38.5M grew 7.8% QoQ. Pharmacy Rx volume grew to 131.2K monthly fills but gross margin compressed 40bps to 17.9% due to ongoing PBM reimbursement pressure. Combined ratio of 96.1% remains below 100%, confirming underwriting profitability despite modest deterioration from the prior quarter's 94.8%.",
     exportReadyAt: "2026-04-09T16:00:00Z",
     createdAt: "2026-04-07T09:00:00Z",
   },
@@ -48,22 +48,22 @@ const MOCK_BOARD_PACKS = [
     approvedAt: "2026-01-15T12:00:00Z",
     status: "published",
     confidentiality: "board_only",
-    sections: ["Executive Summary", "Full Year Results", "Revenue & ARR Bridge", "Cost Structure Review", "FY2026 Budget Overview"],
-    executiveSummary: "FY2025 was a year of strong ARR growth offset by margin pressure. Total ARR reached $312M (+13.7% YoY). EBITDA margin compressed 210bps due to accelerated R&D investment.",
+    sections: ["Executive Summary", "Full Year Results", "Insurance Segment Review", "Pharmacy Segment Review", "Actuarial Reserve Summary", "FY2026 Budget Overview"],
+    executiveSummary: "FY2025 was a strong year for both segments. Insurance GWP grew 10.7% to $178.4M with a combined ratio of 94.8% — the best underwriting result in five years. The pharmacy segment reached 127.4K monthly Rx fills with improved refill adherence of 73.2%. Consolidated revenue of $94.2M beat budget by $2.7M.",
     exportReadyAt: "2026-01-15T12:00:00Z",
     createdAt: "2026-01-10T09:00:00Z",
   },
 ];
 
 const MOCK_KPI_CARDS = [
-  { title: "Total Revenue", metricSlug: "total_revenue", value: 23_800_000, format: "currency", variance: -1_100_000, variancePct: -0.044, comparisonLabel: "vs Budget $24.9M", trendDirection: "unfavourable", isMaterial: true },
-  { title: "ARR", metricSlug: "arr", value: 340_000_000, format: "currency", variance: 28_000_000, variancePct: 0.090, comparisonLabel: "vs Q4 FY2025 $312M", trendDirection: "favourable", isMaterial: false },
-  { title: "Gross Margin", metricSlug: "gross_margin", value: 0.638, format: "percentage", variance: -0.035, variancePct: -0.052, comparisonLabel: "vs Budget 67.3%", trendDirection: "unfavourable", isMaterial: true },
-  { title: "EBITDA Margin", metricSlug: "ebitda_margin", value: 0.162, format: "percentage", variance: -0.008, variancePct: -0.047, comparisonLabel: "vs Budget 17.0%", trendDirection: "unfavourable", isMaterial: false },
-  { title: "DSO", metricSlug: "dso", value: 52, format: "days", variance: 10, variancePct: 0.238, comparisonLabel: "vs Historical avg 42 days", trendDirection: "unfavourable", isMaterial: true },
-  { title: "Cash Runway", metricSlug: "cash_runway_months", value: 18.4, format: "count", variance: -0.8, variancePct: -0.042, comparisonLabel: "vs Q4 FY2025 19.2 months", trendDirection: "unfavourable", isMaterial: false },
-  { title: "NRR", metricSlug: "nrr", value: 1.118, format: "percentage", variance: -0.006, variancePct: -0.005, comparisonLabel: "vs Target 115%+", trendDirection: "unfavourable", isMaterial: false },
-  { title: "Operating Cash Flow", metricSlug: "operating_cash_flow", value: 5_400_000, format: "currency", variance: 600_000, variancePct: 0.125, comparisonLabel: "vs Q4 FY2025 $4.8M", trendDirection: "favourable", isMaterial: false },
+  { title: "Total Revenue", metricSlug: "total_revenue", value: 98_200_000, format: "currency", variance: 1_200_000, variancePct: 0.012, comparisonLabel: "vs Budget $97.0M", trendDirection: "favourable", isMaterial: false },
+  { title: "Gross Written Premium", metricSlug: "gwp", value: 192_600_000, format: "currency", variance: 14_600_000, variancePct: 0.082, comparisonLabel: "vs Q4 FY2025 $178.4M", trendDirection: "favourable", isMaterial: false },
+  { title: "Loss Ratio", metricSlug: "loss_ratio", value: 0.681, format: "percentage", variance: 0.009, variancePct: 0.013, comparisonLabel: "vs Q4 FY2025 67.2%", trendDirection: "unfavourable", isMaterial: false },
+  { title: "Combined Ratio", metricSlug: "combined_ratio", value: 0.961, format: "percentage", variance: 0.013, variancePct: 0.014, comparisonLabel: "vs Q4 FY2025 94.8%", trendDirection: "unfavourable", isMaterial: false },
+  { title: "Commission Income", metricSlug: "commission_income", value: 38_500_000, format: "currency", variance: 2_800_000, variancePct: 0.078, comparisonLabel: "vs Q4 FY2025 $35.7M", trendDirection: "favourable", isMaterial: false },
+  { title: "Monthly Rx Volume", metricSlug: "rx_volume", value: 131_200, format: "count", variance: 3_800, variancePct: 0.030, comparisonLabel: "vs Q4 FY2025 127.4K", trendDirection: "favourable", isMaterial: false },
+  { title: "Pharmacy Gross Margin", metricSlug: "pharmacy_gross_margin", value: 0.179, format: "percentage", variance: -0.004, variancePct: -0.022, comparisonLabel: "vs Budget 18.5%", trendDirection: "unfavourable", isMaterial: true },
+  { title: "Customer Refill Rate", metricSlug: "refill_rate", value: 0.741, format: "percentage", variance: 0.009, variancePct: 0.012, comparisonLabel: "vs Q4 FY2025 73.2%", trendDirection: "favourable", isMaterial: false },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

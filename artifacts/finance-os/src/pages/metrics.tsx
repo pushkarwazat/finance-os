@@ -92,7 +92,7 @@ export function MetricsPage() {
                         "bg-muted text-muted-foreground"
                       )}>
                         {isFavorable ? <ArrowUpIcon className="h-3 w-3 mr-1" /> : isUnfavorable ? <ArrowDownIcon className="h-3 w-3 mr-1" /> : null}
-                        {formatPercentage(metric.variancePct / 100)}
+                        {formatPercentage(metric.variancePct)}
                       </span>
                     )}
                   </div>
@@ -100,11 +100,13 @@ export function MetricsPage() {
                   <div className="mt-4">
                     <p className="text-2xl font-semibold">
                       {metric.unit === "currency" ? formatCurrency(metric.value, metric.currency) :
-                       metric.unit === "percentage" ? formatPercentage(metric.value / 100, false) :
+                       metric.unit === "percentage" ? formatPercentage(metric.value, false) :
                        formatNumber(metric.value)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      vs {metric.unit === "currency" ? formatCurrency(metric.previousValue || 0, metric.currency) : formatNumber(metric.previousValue || 0)} budget
+                      vs {metric.unit === "currency" ? formatCurrency(metric.previousValue || 0, metric.currency) :
+                          metric.unit === "percentage" ? formatPercentage(metric.previousValue || 0, false) :
+                          formatNumber(metric.previousValue || 0)} budget
                     </p>
                   </div>
                 </CardContent>

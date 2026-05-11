@@ -51,7 +51,7 @@ const MOCK_SESSIONS_BY_AGENT: Record<string, unknown[]> = {
     {
       id: "a0000000-0000-0000-0000-000000000001",
       agentId: "a0000000-0000-0000-0000-000000000099",
-      title: "Q4 Revenue Variance Analysis",
+      title: "Q4 Loss Ratio Variance — Actuarial Reserve Release",
       messageCount: 6,
       createdAt: "2025-02-01T14:00:00Z",
       updatedAt: "2025-02-01T14:45:00Z",
@@ -59,8 +59,8 @@ const MOCK_SESSIONS_BY_AGENT: Record<string, unknown[]> = {
     {
       id: "a0000000-0000-0000-0000-000000000002",
       agentId: "a0000000-0000-0000-0000-000000000099",
-      title: "Audit Report Findings",
-      messageCount: 3,
+      title: "PBM Reimbursement Rate Impact on Pharmacy Margin",
+      messageCount: 4,
       createdAt: "2025-01-22T10:30:00Z",
       updatedAt: "2025-01-22T11:00:00Z",
     },
