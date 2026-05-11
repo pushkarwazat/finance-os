@@ -13,19 +13,10 @@ import {
   SensitivityLevelSchema,
   DocumentTypeSchema,
 } from "@financeos/rag";
-import { BedrockLlmAdapter } from "@financeos/adapters";
 import { container } from "@financeos/container";
+import { retrievePassages } from "../lib/rag-retriever.js";
 
 const router = Router();
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Bedrock embedding adapter — used for query encoding when configured
-// ─────────────────────────────────────────────────────────────────────────────
-
-const useBedrockEmbeddings =
-  process.env.LLM_PROVIDER === "bedrock" && process.env.AWS_REGION !== undefined;
-
-const bedrockEmbedder = useBedrockEmbeddings ? new BedrockLlmAdapter() : null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper — build a retrieval request with defaults
@@ -123,6 +114,48 @@ router.post("/rag/search", async (req, res, next) => {
   const { question, documentTypes, fiscalYears, periods, tablesOnly, maxCitations, minScore } =
     parsed.data;
 
+  // ── Real semantic search via shared RAG retriever ─────────────────────────
+  if (!container.isStub("vectorStore")) {
+    try {
+      const ragResult = await retrievePassages(question, {
+        topK: maxCitations ?? 5,
+        minScore: minScore ?? 0.1,
+        tablesOnly: tablesOnly ?? false,
+        requestId: res.locals.requestId,
+      });
+
+      req.log.info(
+        {
+          resultCount: ragResult.passages.length,
+          embeddingLatencyMs: ragResult.embeddingLatencyMs,
+          searchLatencyMs: ragResult.searchLatencyMs,
+        },
+        "RAG search",
+      );
+
+      return res.json({
+        answer: ragResult.passages.length > 0
+          ? `Found ${ragResult.passages.length} relevant passage${ragResult.passages.length === 1 ? "" : "s"} via semantic search.`
+          : "No matching passages found in the document corpus for this query.",
+        citations: ragResult.passages,
+        sessionId: null,
+        retrievalMode: "dense",
+        provider: "pgvector",
+        _embedding: {
+          provider: "bedrock",
+          model: ragResult.embeddingModel,
+          dimensions: 1024,
+          embeddingLatencyMs: ragResult.embeddingLatencyMs,
+          searchLatencyMs: ragResult.searchLatencyMs,
+        },
+      });
+    } catch (err) {
+      req.log.warn({ err }, "RAG search failed — falling back to mock retriever");
+      return next(err);
+    }
+  }
+
+  // ── Mock fallback (no live vector store) ──────────────────────────────────
   const filters: Record<string, unknown> = {};
   if (documentTypes?.length) filters["documentTypes"] = documentTypes;
   if (fiscalYears?.length) filters["fiscalYears"] = fiscalYears;
@@ -141,102 +174,9 @@ router.post("/rag/search", async (req, res, next) => {
     };
   }
 
-  // Encode the query with Bedrock Titan Embeddings when configured.
-  // The resulting vector is logged and will be forwarded to the real vector
-  // store once one is wired into the container (see docs/onboarding/03-vector-db.md).
-  let queryEmbedding: number[] | undefined;
-  let embeddingMeta: { model: string; dimensions: number; tokenCount: number; latencyMs: number } | undefined;
-
-  if (bedrockEmbedder) {
-    try {
-      const embResult = await bedrockEmbedder.embed({
-        model: process.env.BEDROCK_EMBEDDING_MODEL_ID ?? "amazon.titan-embed-text-v2:0",
-        input: question,
-        dimensions: 1024,
-        requestId: res.locals.requestId,
-      });
-      queryEmbedding = embResult.embeddings[0];
-      embeddingMeta = {
-        model: embResult.model,
-        dimensions: queryEmbedding?.length ?? 1024,
-        tokenCount: embResult.usage.totalTokens,
-        latencyMs: embResult.executionMs,
-      };
-      req.log.info(
-        {
-          embeddingModel: embResult.model,
-          dimensions: queryEmbedding?.length,
-          tokenCount: embResult.usage.totalTokens,
-          latencyMs: embResult.executionMs,
-          requestId: res.locals.requestId,
-        },
-        "Bedrock Titan query embedding",
-      );
-    } catch (err) {
-      return next(err);
-    }
-  }
-
-  // ── Real pgvector search ─────────────────────────────────────────────────
-  // When both the embedding and a live vector store are available, run a real
-  // cosine-similarity search instead of the mock keyword approximation.
-  if (queryEmbedding && !container.isStub("vectorStore")) {
-    try {
-      const vectorStore = container.get("vectorStore");
-      const vectorFilter: Record<string, unknown> = { tenantId: DEFAULT_TENANT };
-      if (filters["documentTypes"]) vectorFilter["documentTypes"] = filters["documentTypes"];
-      if (filters["tablesOnly"]) vectorFilter["tablesOnly"] = true;
-
-      const results = await vectorStore.search({
-        queryEmbedding,
-        topK: (options["citation"] as Record<string, number> | undefined)?.["maxCitations"] ?? 5,
-        minScore: (options["citation"] as Record<string, number> | undefined)?.["minScore"] ?? 0.1,
-        filter: vectorFilter,
-        requestId: res.locals.requestId,
-      });
-
-      req.log.info(
-        { resultCount: results.length, requestId: res.locals.requestId },
-        "pgvector search",
-      );
-
-      const citations = results.map((r) => ({
-        id: randomUUID(),
-        documentId: r.document.metadata.documentId,
-        documentTitle: r.document.metadata.documentTitle ?? r.document.metadata.documentId,
-        chunkIndex: r.document.metadata.chunkIndex ?? 0,
-        pageNumber: r.document.metadata.pageNumber ?? null,
-        excerpt: r.document.content.slice(0, 500),
-        relevanceScore: r.score,
-        queryId: randomUUID(),
-        sensitivityLevel: r.document.metadata.sensitivityLevel,
-      }));
-
-      return res.json({
-        answer: citations.length > 0
-          ? `Found ${citations.length} relevant passage${citations.length === 1 ? "" : "s"} via semantic search.`
-          : "No matching passages found in the document corpus for this query.",
-        citations,
-        sessionId: null,
-        retrievalMode: "dense",
-        provider: "pgvector",
-        _embedding: embeddingMeta ? { provider: "bedrock", ...embeddingMeta } : undefined,
-      });
-    } catch (err) {
-      req.log.warn({ err }, "pgvector search failed — falling back to mock retriever");
-    }
-  }
-
-  // ── Mock fallback ─────────────────────────────────────────────────────────
   const request = buildRequest(question, filters, options);
   const answer = mockRetrieve(request);
-
-  res.json({
-    ...answer,
-    ...(embeddingMeta
-      ? { _embedding: { provider: "bedrock", ...embeddingMeta, note: "query vector ready for real vector store" } }
-      : {}),
-  });
+  res.json(answer);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -414,27 +354,23 @@ router.get("/rag/eval/cases", (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 router.get("/rag/providers", (_req, res) => {
-  const embeddingActive = useBedrockEmbeddings
-    ? "bedrock"
-    : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.provider;
-  const embeddingModel = useBedrockEmbeddings
-    ? (process.env.BEDROCK_EMBEDDING_MODEL_ID ?? "amazon.titan-embed-text-v2:0")
-    : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.model;
-  const embeddingDimensions = useBedrockEmbeddings
-    ? 1024
-    : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.dimensions;
+  const liveEmbedding = process.env["LLM_PROVIDER"] === "bedrock" && !!process.env["AWS_REGION"];
+  const liveVectorStore = !container.isStub("vectorStore");
 
   res.json({
     vectorStore: {
       supported: ["pinecone", "qdrant", "pgvector", "weaviate", "opensearch", "in_memory"],
-      active: DEFAULT_MOCK_PROVIDER_CONFIG.vectorStore.provider,
+      active: liveVectorStore ? "pgvector" : DEFAULT_MOCK_PROVIDER_CONFIG.vectorStore.provider,
+      live: liveVectorStore,
     },
     embedding: {
       supported: ["openai", "cohere", "bedrock", "mock"],
-      active: embeddingActive,
-      model: embeddingModel,
-      dimensions: embeddingDimensions,
-      live: useBedrockEmbeddings,
+      active: liveEmbedding ? "bedrock" : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.provider,
+      model: liveEmbedding
+        ? (process.env["BEDROCK_EMBEDDING_MODEL_ID"] ?? "amazon.titan-embed-text-v2:0")
+        : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.model,
+      dimensions: liveEmbedding ? 1024 : DEFAULT_MOCK_PROVIDER_CONFIG.embedding.dimensions,
+      live: liveEmbedding,
     },
     reranker: {
       supported: ["cohere", "bge", "cross_encoder", "mock"],

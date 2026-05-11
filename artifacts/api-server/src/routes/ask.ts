@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { SubmitQuestionBody, ListAskSessionsQueryParams } from "@workspace/api-zod";
 import { MOCK_DOCUMENTS } from "../data/fixtures.js";
 import { BedrockLlmAdapter } from "@financeos/adapters";
+import { retrievePassages, formatPassagesForPrompt } from "../lib/rag-retriever.js";
 
 const router = Router();
 
@@ -18,12 +19,22 @@ const useBedrock =
 
 const bedrockAdapter = useBedrock ? new BedrockLlmAdapter() : null;
 
-const FINANCE_SYSTEM_PROMPT = `You are FinanceOS, an AI finance analyst assistant for a public company's finance team.
+// ─────────────────────────────────────────────────────────────────────────────
+// System prompt — base context for all finance Q&A
+// ─────────────────────────────────────────────────────────────────────────────
+
+const BASE_SYSTEM_PROMPT = `You are FinanceOS, an AI finance analyst assistant for a public company's finance team.
 You help with financial metrics, variance analysis, close management, budgets, forecasts, revenue recognition, audit findings, governance, and compliance.
-Answer questions precisely and analytically. Cite specific numbers when available.
+Answer questions precisely and analytically. When retrieved_documents are provided, ground your answer in those passages and cite specific numbers from them.
 Flag material risks, anomalies, or control gaps when you identify them.
 If a question is outside the finance domain, politely redirect to the appropriate team.
-Today's fiscal context: Q3 FY2024. Company: enterprise SaaS. ARR ~$312M.`;
+Today's fiscal context: Q3 FY2025. Company: enterprise SaaS. ARR ~$312M.
+
+When you have retrieved document passages, structure your response as follows:
+1. Lead with the direct answer citing specific numbers from the documents
+2. Explain key drivers or context
+3. Flag any risks or anomalies you observe
+4. Note any data limitations or caveats`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock fallback (used when LLM_PROVIDER is not set)
@@ -108,7 +119,6 @@ router.post("/ask", async (req, res, next) => {
 
   const { question, sessionId } = parsed.data;
   const responseSessionId = sessionId ?? MOCK_SESSION_ID;
-  const queryId = randomUUID();
   const messageId = randomUUID();
   const startMs = Date.now();
 
@@ -116,15 +126,48 @@ router.post("/ask", async (req, res, next) => {
   let citations: unknown[] = [];
 
   if (bedrockAdapter) {
+    // ── 1. RAG retrieval — embed + pgvector search ────────────────────────
+    let ragResult;
+    try {
+      ragResult = await retrievePassages(question, {
+        topK: 5,
+        minScore: 0.1,
+        requestId: res.locals.requestId,
+      });
+
+      if (ragResult.passages.length > 0) {
+        req.log.info(
+          {
+            passageCount: ragResult.passages.length,
+            embeddingLatencyMs: ragResult.embeddingLatencyMs,
+            searchLatencyMs: ragResult.searchLatencyMs,
+            topScore: ragResult.passages[0]?.relevanceScore,
+          },
+          "RAG retrieval",
+        );
+      }
+
+      citations = ragResult.passages;
+    } catch (err) {
+      // RAG failure is non-fatal — proceed with no grounding
+      req.log.warn({ err }, "RAG retrieval failed — proceeding without grounding");
+      ragResult = { passages: [], embeddingLatencyMs: 0, searchLatencyMs: 0, embeddingModel: "", vectorCount: 0 };
+    }
+
+    // ── 2. Build grounded system prompt ──────────────────────────────────
+    const documentsBlock = formatPassagesForPrompt(ragResult.passages);
+    const systemPrompt = BASE_SYSTEM_PROMPT + documentsBlock;
+
+    // ── 3. Claude completion ──────────────────────────────────────────────
     try {
       const completion = await bedrockAdapter.complete({
         model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-sonnet-20241022-v2:0",
         messages: [
-          { role: "system", content: FINANCE_SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           { role: "user", content: question },
         ],
-        maxTokens: 1_024,
-        temperature: 0.3,
+        maxTokens: 1_500,
+        temperature: 0.1,
         requestId: res.locals.requestId,
         traceId: res.locals.traceId,
       });
@@ -136,6 +179,8 @@ router.post("/ask", async (req, res, next) => {
           promptTokens: completion.usage.promptTokens,
           completionTokens: completion.usage.completionTokens,
           latencyMs: completion.executionMs,
+          ragPassages: ragResult.passages.length,
+          grounded: ragResult.passages.length > 0,
         },
         "Bedrock completion",
       );
@@ -143,12 +188,12 @@ router.post("/ask", async (req, res, next) => {
       return next(err);
     }
   } else {
+    // ── Mock fallback ─────────────────────────────────────────────────────
     const mock = getMockAnswer(question);
     answer = mock.answer;
     citations = (mock.citations as Array<Record<string, unknown>>).map((c) => ({
       ...c,
       id: randomUUID(),
-      queryId,
     }));
   }
 
