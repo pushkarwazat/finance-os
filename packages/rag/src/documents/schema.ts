@@ -31,6 +31,7 @@ export const DocumentTypeSchema = z.enum([
   "board_deck",
   "audit_workpaper",
   "sop",
+  "spreadsheet",
 ]);
 export type DocumentType = z.infer<typeof DocumentTypeSchema>;
 
@@ -71,6 +72,11 @@ export const DOCUMENT_TYPE_META: Record<
   sop: {
     label: "Standard Operating Procedure",
     description: "Step-by-step operational procedures and runbooks",
+    defaultSensitivity: "internal",
+  },
+  spreadsheet: {
+    label: "Spreadsheet",
+    description: "Excel workbooks with financial data, GWP schedules, pharmacy margin tables",
     defaultSensitivity: "internal",
   },
 };

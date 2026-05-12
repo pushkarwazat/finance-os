@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -173,6 +173,7 @@ function typeColor(type: string) {
     board_deck:      "bg-red-500/10 text-red-500 border-red-500/20",
     audit_workpaper: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20",
     sop:             "bg-sky-500/10 text-sky-500 border-sky-500/20",
+    spreadsheet:     "bg-teal-500/10 text-teal-600 border-teal-500/20",
   }
   return map[type] ?? "bg-muted text-muted-foreground border-muted"
 }
@@ -198,7 +199,7 @@ function typeLabel(type: string) {
   const map: Record<string, string> = {
     contract: "Contract", invoice: "Invoice", policy_doc: "Policy",
     close_memo: "Close Memo", board_deck: "Board Deck",
-    audit_workpaper: "Audit WP", sop: "SOP",
+    audit_workpaper: "Audit WP", sop: "SOP", spreadsheet: "Spreadsheet",
   }
   return map[type] ?? type.replace(/_/g, " ")
 }
@@ -332,12 +333,14 @@ function CitationCard({ citation, onDocClick }: { citation: Citation; onDocClick
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SUGGESTED = [
-  "What was ARR at end of Q3 FY2025?",
-  "What adjustments were posted during Q3 close?",
-  "How is subscription revenue recognised under ASC 606?",
-  "What SOX ITGC findings were identified?",
-  "What is the approval threshold for journal entries?",
-  "Break down operating expenses for Q3 FY2025",
+  "What was the Loss Ratio for Q1 FY2026?",
+  "What adjustments were posted during the Q1 FY2026 close?",
+  "How is commission income recognised for surplus lines policies?",
+  "What SOX ITGC findings were identified in the latest audit workpaper?",
+  "What is the approval threshold for journal entries above materiality?",
+  "Break down pharmacy gross margin and DIR fee impact for Q1 FY2026",
+  "What is the Combined Ratio trend across the last four quarters?",
+  "Which Excel sheets contain GWP data by line of business?",
 ]
 
 function RagSearchPanel({ onDocClick }: { onDocClick: (id: string) => void }) {
@@ -574,14 +577,14 @@ function UploadPanel({ onSuccess }: { onSuccess: () => void }) {
     }
   }
 
-  const ACCEPT = ".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+  const ACCEPT = ".pdf,.docx,.txt,.xlsx,.xls,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h3 className="text-base font-semibold mb-1">Upload Document</h3>
         <p className="text-sm text-muted-foreground">
-          Upload a PDF, DOCX, or TXT file. It will be chunked, embedded with Bedrock Titan, and indexed in pgvector so it is immediately searchable via RAG.
+          Upload a PDF, DOCX, TXT, or Excel (.xlsx/.xls) file. Excel files are parsed into table chunks immediately — no Bedrock required. PDF/DOCX/TXT requires the Bedrock embedding adapter.
         </p>
       </div>
 
@@ -627,7 +630,7 @@ function UploadPanel({ onSuccess }: { onSuccess: () => void }) {
           ) : (
             <div>
               <p className="text-sm font-medium">Drop a file here or click to browse</p>
-              <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, or TXT · max 20 MB</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF, DOCX, TXT, XLSX, XLS · max 50 MB</p>
             </div>
           )}
         </div>
@@ -658,6 +661,7 @@ function UploadPanel({ onSuccess }: { onSuccess: () => void }) {
                 <SelectItem value="board_deck">Board Deck</SelectItem>
                 <SelectItem value="audit_workpaper">Audit Workpaper</SelectItem>
                 <SelectItem value="sop">SOP</SelectItem>
+                <SelectItem value="spreadsheet">Spreadsheet</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -861,11 +865,149 @@ function ChunkList({ docId }: { docId: string }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Sheet viewer — for Excel/spreadsheet documents
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SheetData {
+  name: string
+  rowCount: number
+  colCount: number
+  headers: string[]
+  previewRows: string[][]
+  hasFinancialData: boolean
+  chunkCount: number
+}
+
+function SheetViewer({ docId }: { docId: string }) {
+  const [activeSheet, setActiveSheet] = useState<string | null>(null)
+  const { data, loading, error } = useApiGet<{ data: SheetData[]; sheetNames: string[] }>(
+    `/rag/documents/${docId}/sheets`
+  )
+  const sheets = data?.data ?? []
+
+  useEffect(() => {
+    if (sheets.length > 0 && !activeSheet) {
+      setActiveSheet(sheets[0]!.name)
+    }
+  }, [sheets, activeSheet])
+
+  const selected = sheets.find(s => s.name === activeSheet) ?? sheets[0]
+
+  if (loading) return (
+    <div className="space-y-2">
+      {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-7 w-full" />)}
+    </div>
+  )
+  if (error) return <p className="text-sm text-destructive">Failed to load sheet data.</p>
+  if (sheets.length === 0) return (
+    <div className="text-center py-12 text-muted-foreground">
+      <Table2 className="h-8 w-8 mx-auto mb-2 opacity-30" />
+      <p className="text-sm font-medium">No sheet preview available</p>
+      <p className="text-xs mt-1">Re-upload the file to generate a preview.</p>
+    </div>
+  )
+
+  return (
+    <div className="space-y-3">
+      {sheets.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap">
+          {sheets.map(s => (
+            <button
+              key={s.name}
+              onClick={() => setActiveSheet(s.name)}
+              className={cn(
+                "px-2.5 py-1 rounded-md text-xs font-medium transition-colors border",
+                activeSheet === s.name
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
+              )}
+            >
+              {s.name}
+              {s.hasFinancialData && <span className="ml-1 text-teal-500">$</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {selected && (
+        <>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{selected.rowCount.toLocaleString()} rows</span>
+            <span>·</span>
+            <span>{selected.colCount} cols</span>
+            {selected.hasFinancialData && (
+              <><span>·</span><span className="text-teal-600 font-medium">Financial</span></>
+            )}
+            {selected.previewRows.length > 0 && selected.previewRows.length < selected.rowCount && (
+              <><span>·</span><span className="text-orange-500">first {selected.previewRows.length} rows shown</span></>
+            )}
+          </div>
+
+          {selected.previewRows.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6 bg-muted/20 rounded-lg">
+              Preview not stored for this sheet. Use RAG Search to query its contents.
+            </p>
+          ) : (
+            <div className="overflow-auto rounded-lg border border-border max-h-[420px]">
+              <table className="min-w-full text-xs divide-y divide-border">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-muted">
+                    <th className="px-2 py-1.5 text-left font-semibold text-muted-foreground border-r border-border w-8 shrink-0">#</th>
+                    {selected.headers.map((h, i) => (
+                      <th
+                        key={i}
+                        className="px-3 py-1.5 text-left font-semibold text-muted-foreground whitespace-nowrap border-r border-border last:border-r-0"
+                      >
+                        {h || `Col ${i + 1}`}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {selected.previewRows.map((row, ri) => (
+                    <tr key={ri} className={ri % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                      <td className="px-2 py-1.5 text-muted-foreground/50 border-r border-border/50 text-center font-mono">
+                        {ri + 1}
+                      </td>
+                      {row.map((cell, ci) => (
+                        <td
+                          key={ci}
+                          className="px-3 py-1.5 whitespace-nowrap text-foreground border-r border-border/50 last:border-r-0 max-w-[180px] truncate"
+                          title={cell}
+                        >
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Evidence inspector (right-side sheet)
 // ─────────────────────────────────────────────────────────────────────────────
 
 function EvidenceInspector({ doc, onClose }: { doc: RagDocument; onClose: () => void }) {
-  const [tab, setTab] = useState("overview")
+  const isExcel =
+    doc.type === "spreadsheet" ||
+    doc.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+    doc.mimeType === "application/vnd.ms-excel" ||
+    /\.xlsx?$/i.test(doc.filename)
+
+  const [tab, setTab] = useState(isExcel ? "sheets" : "overview")
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: FileText },
+    ...(isExcel ? [{ id: "sheets", label: "Sheets", icon: Table2 }] : []),
+    { id: "chunks", label: "Evidence", icon: FileStack },
+  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -886,10 +1028,7 @@ function EvidenceInspector({ doc, onClose }: { doc: RagDocument; onClose: () => 
       </div>
 
       <div className="flex border-b border-border shrink-0">
-        {[
-          { id: "overview", label: "Overview", icon: FileText },
-          { id: "chunks", label: "Evidence", icon: FileStack },
-        ].map(({ id, label, icon: Icon }) => (
+        {tabs.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -963,6 +1102,7 @@ function EvidenceInspector({ doc, onClose }: { doc: RagDocument; onClose: () => 
           </div>
         )}
 
+        {tab === "sheets" && isExcel && <SheetViewer docId={doc.id} />}
         {tab === "chunks" && <ChunkList docId={doc.id} />}
       </div>
     </div>

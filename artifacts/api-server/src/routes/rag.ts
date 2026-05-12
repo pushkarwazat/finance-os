@@ -26,7 +26,10 @@ import {
   listDocuments,
   getDocumentStats,
   getChunksByDocumentId,
+  insertChunk,
+  getTableChunksWithMeta,
 } from "../lib/doc-repo.js";
+import { parseExcelBuffer } from "../lib/excel-parser.js";
 import { chunkText } from "../lib/chunker.js";
 
 const router = Router();
@@ -51,15 +54,17 @@ const ALLOWED_MIMES = new Set([
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "text/plain",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+  "application/vnd.ms-excel",                                          // .xls
 ]);
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB — large Excel files
   fileFilter: (_req, file, cb) => {
     const ok =
       ALLOWED_MIMES.has(file.mimetype) ||
-      /\.(pdf|docx|txt)$/i.test(file.originalname);
+      /\.(pdf|docx|txt|xlsx|xls)$/i.test(file.originalname);
     cb(null, ok);
   },
 });
@@ -277,17 +282,139 @@ router.post(
   upload.single("file"),
   async (req, res, next) => {
     if (!req.file) {
-      res
-        .status(400)
-        .json({ error: "bad_request", message: "No file uploaded. Send a multipart/form-data request with a 'file' field (PDF, DOCX, or TXT, max 20 MB)." });
+      res.status(400).json({
+        error: "bad_request",
+        message:
+          "No file uploaded. Send a multipart/form-data request with a 'file' field (PDF, DOCX, TXT, XLSX, or XLS, max 50 MB).",
+      });
       return;
     }
 
+    // ── Excel branch — works without Bedrock; stores chunks with NULL embedding ─
+    const isExcel =
+      req.file.mimetype ===
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+      req.file.mimetype === "application/vnd.ms-excel" ||
+      /\.xlsx?$/i.test(req.file.originalname);
+
+    if (isExcel) {
+      const parsed = UploadBodySchema.safeParse(req.body);
+      if (!parsed.success) {
+        res
+          .status(400)
+          .json({ error: "bad_request", message: parsed.error.message });
+        return;
+      }
+
+      const { title, type, sensitivityLevel, fiscalYear, period, tags: tagsRaw } =
+        parsed.data;
+      const tags = tagsRaw
+        ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean)
+        : [];
+      const file = req.file;
+      const docId = randomUUID();
+
+      let doc = await insertDocument({
+        id: docId,
+        title,
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        sizeBytes: file.size,
+        type,
+        sensitivityLevel,
+        tags,
+        fiscalYear,
+        period,
+        uploadedBy: "system",
+      });
+
+      try {
+        const workbook = parseExcelBuffer(file.buffer);
+
+        if (workbook.sheets.length === 0) {
+          doc = (await updateDocumentStatus(doc.id, "error")) ?? doc;
+          res.status(422).json({
+            error: "empty_document",
+            message:
+              "No non-empty sheets found in the uploaded Excel file. Ensure the file contains at least one sheet with a header row and data.",
+            document: doc,
+          });
+          return;
+        }
+
+        req.log.info(
+          {
+            documentId: docId,
+            sheets: workbook.sheetNames.length,
+            totalRows: workbook.totalRows,
+          },
+          "Excel workbook parsed",
+        );
+
+        for (const chunk of workbook.chunks) {
+          const chunkId = `${docId}-xl-${chunk.globalChunkIndex}`;
+          const label =
+            chunk.startRow > 0
+              ? `${chunk.sheetName} (rows ${chunk.startRow + 1}–${chunk.endRow + 1})`
+              : chunk.sheetName;
+          const chunkText = `Sheet: ${label}\n\n${chunk.markdownTable}`;
+
+          const sheetMeta = workbook.sheets.find(
+            (s) => s.name === chunk.sheetName,
+          );
+
+          await insertChunk({
+            chunkId,
+            documentId: docId,
+            chunkIndex: chunk.globalChunkIndex,
+            contentType: "table",
+            sectionTitle: chunk.sheetName,
+            chunkText,
+            tokenCount: Math.ceil(chunkText.length / 4),
+            metadataTags: [...tags, "excel", "spreadsheet"],
+            sensitivityLevel,
+            metadataJson: {
+              documentTitle: title,
+              sheetName: chunk.sheetName,
+              headers: chunk.headers,
+              rowCount: sheetMeta?.rowCount ?? chunk.rows.length,
+              colCount: chunk.headers.length,
+              hasFinancialData: chunk.hasFinancialData,
+              markdownTable: chunk.markdownTable,
+              type,
+              ...(chunk.isFirstChunkOfSheet
+                ? { previewRows: chunk.rows.slice(0, 50) }
+                : {}),
+            },
+          });
+        }
+
+        doc =
+          (await updateDocumentStatus(docId, "indexed", {
+            chunkCount: workbook.chunks.length,
+            summary: workbook.summaryText,
+          })) ?? doc;
+
+        req.log.info(
+          { documentId: docId, chunkCount: workbook.chunks.length },
+          "Excel document indexed",
+        );
+
+        res.status(201).json(doc);
+      } catch (err) {
+        req.log.error({ err, documentId: docId }, "Excel upload failed");
+        await updateDocumentStatus(docId, "error").catch(() => undefined);
+        next(err);
+      }
+      return;
+    }
+
+    // ── Non-Excel: require Bedrock embedding + pgvector ───────────────────────
     if (!embedder || container.isStub("vectorStore")) {
       res.status(503).json({
         error: "service_unavailable",
         message:
-          "Embedding and vector store adapters are required for document upload. Ensure LLM_PROVIDER=bedrock and DATABASE_URL are configured.",
+          "Embedding and vector store adapters are required for PDF/DOCX/TXT upload. Ensure LLM_PROVIDER=bedrock and DATABASE_URL are configured. Excel files (.xlsx/.xls) can be uploaded without Bedrock.",
       });
       return;
     }
@@ -568,6 +695,75 @@ router.get("/rag/documents/:id/chunks", async (req, res, next) => {
       limit,
       offset,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/rag/documents/:id/sheets — parsed sheet data for Excel documents
+// Reconstructs sheet metadata from stored chunk metadata_json
+// ─────────────────────────────────────────────────────────────────────────────
+
+router.get("/rag/documents/:id/sheets", async (req, res, next) => {
+  const docId = req.params["id"]!;
+
+  try {
+    const doc = await findDocumentById(docId);
+    if (!doc) {
+      res.status(404).json({ error: "not_found", message: "Document not found" });
+      return;
+    }
+
+    const chunks = await getTableChunksWithMeta(docId);
+
+    if (chunks.length === 0) {
+      res.json({ data: [], documentId: docId, sheetNames: [] });
+      return;
+    }
+
+    // Reconstruct per-sheet summaries from metadata_json on each chunk
+    const sheetOrder: string[] = [];
+    const sheetMap = new Map<
+      string,
+      {
+        name: string;
+        rowCount: number;
+        colCount: number;
+        headers: string[];
+        previewRows: string[][];
+        hasFinancialData: boolean;
+        chunkCount: number;
+      }
+    >();
+
+    for (const chunk of chunks) {
+      const meta = chunk.metadataJson;
+      const sheetName =
+        (meta["sheetName"] as string | undefined) ??
+        chunk.sectionTitle ??
+        "Sheet1";
+
+      if (!sheetMap.has(sheetName)) {
+        sheetOrder.push(sheetName);
+        sheetMap.set(sheetName, {
+          name: sheetName,
+          rowCount: (meta["rowCount"] as number | undefined) ?? 0,
+          colCount: (meta["colCount"] as number | undefined) ?? 0,
+          headers: (meta["headers"] as string[] | undefined) ?? [],
+          previewRows: (meta["previewRows"] as string[][] | undefined) ?? [],
+          hasFinancialData:
+            (meta["hasFinancialData"] as boolean | undefined) ?? false,
+          chunkCount: 1,
+        });
+      } else {
+        const sheet = sheetMap.get(sheetName)!;
+        sheet.chunkCount++;
+      }
+    }
+
+    const data = sheetOrder.map((n) => sheetMap.get(n)!);
+    res.json({ data, documentId: docId, sheetNames: sheetOrder });
   } catch (err) {
     next(err);
   }

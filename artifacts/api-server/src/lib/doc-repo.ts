@@ -377,6 +377,86 @@ export async function getChunksByDocumentId(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Fetch table chunks WITH metadata_json (for Excel sheet reconstruction)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TableChunkMeta {
+  chunkId: string;
+  chunkIndex: number;
+  sectionTitle: string | null;
+  metadataJson: Record<string, unknown>;
+}
+
+export async function getTableChunksWithMeta(
+  documentId: string,
+): Promise<TableChunkMeta[]> {
+  const { rows } = await pool.query<{
+    chunk_id: string;
+    chunk_index: number;
+    section_title: string | null;
+    metadata_json: Record<string, unknown> | null;
+  }>(
+    `SELECT chunk_id, chunk_index, section_title, metadata_json
+     FROM rag_chunks
+     WHERE document_id = $1 AND content_type = 'table'
+     ORDER BY chunk_index`,
+    [documentId],
+  );
+
+  return rows.map((r) => ({
+    chunkId: r.chunk_id,
+    chunkIndex: r.chunk_index,
+    sectionTitle: r.section_title,
+    metadataJson: r.metadata_json ?? {},
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Insert a single chunk (no embedding — used for Excel table chunks)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface InsertChunkParams {
+  chunkId: string;
+  documentId: string;
+  tenantId?: string;
+  chunkIndex: number;
+  contentType: string;
+  sectionTitle?: string;
+  chunkText: string;
+  tokenCount?: number;
+  metadataTags?: string[];
+  sensitivityLevel?: string;
+  metadataJson?: Record<string, unknown>;
+}
+
+export async function insertChunk(params: InsertChunkParams): Promise<void> {
+  await pool.query(
+    `INSERT INTO rag_chunks (
+       chunk_id, document_id, tenant_id, chunk_index, content_type,
+       section_title, chunk_text, token_count, metadata_tags,
+       sensitivity_level, metadata_json
+     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     ON CONFLICT (chunk_id) DO UPDATE SET
+       chunk_text    = EXCLUDED.chunk_text,
+       metadata_json = EXCLUDED.metadata_json,
+       updated_at    = NOW()`,
+    [
+      params.chunkId,
+      params.documentId,
+      params.tenantId ?? "tenant-demo-001",
+      params.chunkIndex,
+      params.contentType,
+      params.sectionTitle ?? null,
+      params.chunkText,
+      params.tokenCount ?? null,
+      params.metadataTags ?? [],
+      params.sensitivityLevel ?? "internal",
+      JSON.stringify(params.metadataJson ?? {}),
+    ],
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Delete a document + its chunks
 // ─────────────────────────────────────────────────────────────────────────────
 
