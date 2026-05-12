@@ -80,25 +80,23 @@ function useDomains() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DOMAIN_COLORS: Record<string, string> = {
-  revenue: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  subscriptions: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  customers: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  invoices: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  payments: "bg-cyan-500/10 text-cyan-600 border-cyan-500/20",
-  expenses: "bg-rose-500/10 text-rose-600 border-rose-500/20",
-  budget_vs_actual: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
-  collections: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+  underwriting: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  brokerage:    "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  pharmacy:     "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  revenue:      "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  reserving:    "bg-rose-500/10 text-rose-600 border-rose-500/20",
+  planning:     "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+  compliance:   "bg-orange-500/10 text-orange-600 border-orange-500/20",
 }
 
 const DOMAIN_LABELS: Record<string, string> = {
-  revenue: "Revenue",
-  subscriptions: "Subscriptions",
-  customers: "Customers",
-  invoices: "Invoices & AR",
-  payments: "Payments",
-  expenses: "Expenses",
-  budget_vs_actual: "Budget vs Actual",
-  collections: "Collections",
+  underwriting: "Underwriting",
+  brokerage:    "Brokerage",
+  pharmacy:     "Pharmacy",
+  revenue:      "Revenue",
+  reserving:    "Reserving",
+  planning:     "Planning",
+  compliance:   "Compliance",
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
