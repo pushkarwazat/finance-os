@@ -3,16 +3,28 @@
  *
  * Uses a raw pg Pool so it works independently of the Drizzle schema,
  * matching the same rag_chunks table already managed by PgVectorStoreAdapter.
+ *
+ * When DATABASE_URL is not set the pool is null and all functions return
+ * empty results rather than throwing, keeping the server stable in mock mode.
  */
 
 import { Pool } from "pg";
 
-const pool = new Pool({
-  connectionString: process.env["DATABASE_URL"],
-  max: 10,
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
-});
+function createPool(): Pool | null {
+  if (!process.env["DATABASE_URL"]) return null;
+  const p = new Pool({
+    connectionString: process.env["DATABASE_URL"],
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 5_000,
+  });
+  p.on("error", (err) => {
+    console.error("[doc-repo] pg pool error:", err.message);
+  });
+  return p;
+}
+
+const pool = createPool();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // StoredDocument
@@ -107,6 +119,7 @@ export interface InsertDocumentParams {
 export async function insertDocument(
   params: InsertDocumentParams,
 ): Promise<StoredDocument> {
+  if (!pool) throw new Error("DATABASE_URL is not configured");
   const { rows } = await pool.query<DocRow>(
     `INSERT INTO rag_documents
        (id, tenant_id, title, filename, mime_type, size_bytes, type, status,
@@ -142,6 +155,7 @@ export async function updateDocumentStatus(
   status: string,
   extra?: { chunkCount?: number; pageCount?: number; summary?: string },
 ): Promise<StoredDocument | null> {
+  if (!pool) return null;
   const { rows } = await pool.query<DocRow>(
     `UPDATE rag_documents
      SET status      = $2,
@@ -169,6 +183,7 @@ export async function updateDocumentStatus(
 export async function findDocumentById(
   id: string,
 ): Promise<StoredDocument | null> {
+  if (!pool) return null;
   const { rows } = await pool.query<DocRow>(
     `SELECT * FROM rag_documents WHERE id = $1`,
     [id],
@@ -193,6 +208,8 @@ export interface ListDocumentsFilter {
 export async function listDocuments(
   filter: ListDocumentsFilter = {},
 ): Promise<{ data: StoredDocument[]; total: number }> {
+  if (!pool) return { data: [], total: 0 };
+
   const conditions: string[] = [];
   const params: unknown[] = [];
 
@@ -252,6 +269,8 @@ export async function getDocumentStats(): Promise<{
   indexedChunks: number;
   tableChunks: number;
 }> {
+  if (!pool) return { total: 0, byType: {}, indexedChunks: 0, tableChunks: 0 };
+
   const [docsResult, chunksResult] = await Promise.all([
     pool.query<{ type: string; count: string }>(
       `SELECT type, COUNT(*) as count FROM rag_documents GROUP BY type`,
@@ -319,6 +338,8 @@ export async function getChunksByDocumentId(
   narrativeChunks: number;
   avgTokenCount: number;
 }> {
+  if (!pool) return { data: [], total: 0, tableChunks: 0, narrativeChunks: 0, avgTokenCount: 0 };
+
   const conditions: string[] = ["document_id = $1"];
   const params: unknown[] = [documentId];
 
@@ -390,6 +411,7 @@ export interface TableChunkMeta {
 export async function getTableChunksWithMeta(
   documentId: string,
 ): Promise<TableChunkMeta[]> {
+  if (!pool) return [];
   const { rows } = await pool.query<{
     chunk_id: string;
     chunk_index: number;
@@ -430,6 +452,7 @@ export interface InsertChunkParams {
 }
 
 export async function insertChunk(params: InsertChunkParams): Promise<void> {
+  if (!pool) throw new Error("DATABASE_URL is not configured");
   await pool.query(
     `INSERT INTO rag_chunks (
        chunk_id, document_id, tenant_id, chunk_index, content_type,
@@ -461,6 +484,7 @@ export async function insertChunk(params: InsertChunkParams): Promise<void> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function deleteDocument(id: string): Promise<void> {
+  if (!pool) throw new Error("DATABASE_URL is not configured");
   await pool.query(`DELETE FROM rag_chunks WHERE document_id = $1`, [id]);
   await pool.query(`DELETE FROM rag_documents WHERE id = $1`, [id]);
 }
