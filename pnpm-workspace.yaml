@@ -5,7 +5,7 @@ packages:
   - packages/*
   - scripts
 
-autoInstallPeers: false
+autoInstallPeers: true
 
 catalog:
   '@replit/vite-plugin-cartographer': ^0.5.1
