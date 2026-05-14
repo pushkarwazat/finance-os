@@ -13,6 +13,9 @@
     "typescript": "~5.9.2"
   },
   "dependencies": {
+    "@azure/core-auth": "^1.9.0",
+    "@azure/core-client": "^1.10.0",
+    "@azure/core-rest-pipeline": "^1.19.0",
     "@azure/identity": "^4.10.0",
     "@rollup/rollup-win32-x64-msvc": "^4.60.3",
     "@tailwindcss/oxide-win32-x64-msvc": "^4.3.0",
