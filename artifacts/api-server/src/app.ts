@@ -56,9 +56,8 @@ app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
-        defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
-        objectSrc: ["'none'"],
+        upgradeInsecureRequests: null,
       },
     },
     crossOriginEmbedderPolicy: false,
