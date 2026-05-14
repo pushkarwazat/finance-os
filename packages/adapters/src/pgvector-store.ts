@@ -117,6 +117,7 @@ export class PgVectorStoreAdapter implements VectorStoreAdapter {
         max: 10,
         idleTimeoutMillis: 30_000,
         connectionTimeoutMillis: 5_000,
+        ssl: process.env["DATABASE_URL"] ? { rejectUnauthorized: false } : false,
       },
     );
   }

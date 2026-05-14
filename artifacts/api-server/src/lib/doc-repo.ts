@@ -17,6 +17,7 @@ function createPool(): Pool | null {
     max: 10,
     idleTimeoutMillis: 30_000,
     connectionTimeoutMillis: 5_000,
+    ssl: { rejectUnauthorized: false },
   });
   p.on("error", (err) => {
     console.error("[doc-repo] pg pool error:", err.message);
