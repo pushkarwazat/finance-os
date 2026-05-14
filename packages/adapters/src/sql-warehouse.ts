@@ -56,6 +56,9 @@ export interface WarehouseQueryOptions {
   labels?: Record<string, string>;
   requestId?: string;
   traceId?: string;
+  /** Identity of the application user who triggered this query — written to SQL Server session context for audit. */
+  actorId?: string;
+  actorEmail?: string;
 }
 
 export interface WarehouseHealthStatus {

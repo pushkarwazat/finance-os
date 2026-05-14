@@ -35,6 +35,10 @@ import type {
   VectorDeleteRequest,
   VectorStoreHealthStatus,
   VectorStoreStats,
+  DocumentRecord,
+  DocumentListOpts,
+  DocumentListResult,
+  DocumentStatsResult,
 } from "./vector-store.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -271,6 +275,96 @@ export class PgVectorStoreAdapter implements VectorStoreAdapter {
     return {
       vectorCount: parseInt(row?.indexed ?? "0", 10),
       dimension: 1024,
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // listDocuments — document catalog queries against rag_documents
+  // ───────────────────────────────────────────────────────────────────────────
+
+  async listDocuments(opts: DocumentListOpts): Promise<DocumentListResult> {
+    const { type, status, search, limit, offset } = opts;
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+
+    if (type) { params.push(type); conditions.push(`type = $${params.length}`); }
+    if (status) { params.push(status); conditions.push(`status = $${params.length}`); }
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`(title ILIKE $${params.length} OR filename ILIKE $${params.length})`);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const countResult = await this.pool.query<{ count: string }>(
+      `SELECT COUNT(*) FROM rag_documents ${where}`,
+      params,
+    );
+    const total = parseInt(countResult.rows[0]?.count ?? "0", 10);
+
+    params.push(limit);
+    const limitIdx = params.length;
+    params.push(offset);
+    const offsetIdx = params.length;
+
+    const dataResult = await this.pool.query<Record<string, unknown>>(
+      `SELECT id, tenant_id as "tenantId", title, filename, mime_type as "mimeType",
+              size_bytes as "sizeBytes", type, status, chunk_count as "chunkCount",
+              page_count as "pageCount", sensitivity_level as "sensitivityLevel",
+              sensitivity_tags as "sensitivityTags", tags, fiscal_year as "fiscalYear",
+              period, uploaded_by as "uploadedBy", summary, created_at as "createdAt",
+              updated_at as "updatedAt"
+       FROM rag_documents ${where}
+       ORDER BY created_at DESC
+       LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+      params,
+    );
+
+    return { data: dataResult.rows as unknown as DocumentRecord[], total, limit, offset };
+  }
+
+  async getDocumentById(id: string): Promise<DocumentRecord | null> {
+    const result = await this.pool.query<Record<string, unknown>>(
+      `SELECT id, tenant_id as "tenantId", title, filename, mime_type as "mimeType",
+              size_bytes as "sizeBytes", type, status, chunk_count as "chunkCount",
+              page_count as "pageCount", sensitivity_level as "sensitivityLevel",
+              sensitivity_tags as "sensitivityTags", tags, fiscal_year as "fiscalYear",
+              period, uploaded_by as "uploadedBy", summary, created_at as "createdAt",
+              updated_at as "updatedAt"
+       FROM rag_documents WHERE id = $1`,
+      [id],
+    );
+    return result.rows.length > 0 ? (result.rows[0] as unknown as DocumentRecord) : null;
+  }
+
+  async getDocumentStats(): Promise<DocumentStatsResult> {
+    const [totals, byTypeRows, byStatusRows] = await Promise.all([
+      this.pool.query<{ total: string; totalSizeBytes: string; totalChunks: string }>(
+        `SELECT COUNT(*) as total,
+                COALESCE(SUM(size_bytes), 0) as "totalSizeBytes",
+                COALESCE(SUM(chunk_count), 0) as "totalChunks"
+         FROM rag_documents`,
+      ),
+      this.pool.query<{ type: string; count: string }>(
+        `SELECT type, COUNT(*) as count FROM rag_documents GROUP BY type`,
+      ),
+      this.pool.query<{ status: string; count: string }>(
+        `SELECT status, COUNT(*) as count FROM rag_documents GROUP BY status`,
+      ),
+    ]);
+
+    const row = totals.rows[0];
+    const byType: Record<string, number> = {};
+    for (const r of byTypeRows.rows) byType[r.type] = parseInt(r.count, 10);
+    const byStatus: Record<string, number> = {};
+    for (const r of byStatusRows.rows) byStatus[r.status] = parseInt(r.count, 10);
+
+    return {
+      total: parseInt(row?.total ?? "0", 10),
+      byType,
+      byStatus,
+      totalSizeBytes: parseInt(row?.totalSizeBytes ?? "0", 10),
+      totalChunks: parseInt(row?.totalChunks ?? "0", 10),
     };
   }
 

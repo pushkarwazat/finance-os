@@ -6,7 +6,7 @@
  */
 
 import { container } from "@financeos/container";
-import { BedrockLlmAdapter, PgVectorStoreAdapter } from "@financeos/adapters";
+import { BedrockLlmAdapter, PgVectorStoreAdapter, SqlServerWarehouseAdapter } from "@financeos/adapters";
 import { logger } from "./logger.js";
 
 export async function setupContainer(): Promise<void> {
@@ -21,6 +21,12 @@ export async function setupContainer(): Promise<void> {
     const pgAdapter = new PgVectorStoreAdapter();
     container.register("vectorStore", pgAdapter);
     logger.info({}, "Container: registered PgVectorStoreAdapter as vectorStore");
+  }
+
+  // ── SQL Warehouse (SQL Server) ────────────────────────────────────────────
+  if (process.env["MSSQL_SERVER"] && process.env["MSSQL_DATABASE"]) {
+    container.register("sqlWarehouse", new SqlServerWarehouseAdapter());
+    logger.info({}, "Container: registered SqlServerWarehouseAdapter as sqlWarehouse");
   }
 
   // Log all wired adapters at startup

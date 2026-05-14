@@ -79,6 +79,7 @@ const replitDomains = (process.env.REPLIT_DOMAINS ?? "")
 const allowedOrigins = new Set<string>([
   ...replitDomains,
   "http://localhost:80",
+  "http://localhost:5173",
   "http://localhost:24160",
   "http://localhost:8080",
 ]);
@@ -88,9 +89,10 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (server-to-server, curl, healthchecks)
       if (!origin) return callback(null, true);
+      const isLocalhost = /^https?:\/\/localhost(:\d+)?$/.test(origin);
       if (
+        (process.env.NODE_ENV === "development" && isLocalhost) ||
         allowedOrigins.has(origin) ||
-        // Allow any subdomain of the Replit dev domain
         origin.endsWith(".replit.dev") ||
         origin.endsWith(".repl.co") ||
         origin.endsWith(".kirk.replit.dev")

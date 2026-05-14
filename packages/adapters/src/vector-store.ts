@@ -82,6 +82,55 @@ export interface VectorStoreStats {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Document catalog types (rag_documents table)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DocumentRecord {
+  id: string;
+  tenantId: string;
+  title: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  type: string;
+  status: string;
+  chunkCount: number | null;
+  pageCount: number | null;
+  sensitivityLevel: string | null;
+  sensitivityTags: string[] | null;
+  tags: string[] | null;
+  fiscalYear: number | null;
+  period: string | null;
+  uploadedBy: string | null;
+  summary: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentListOpts {
+  type?: string;
+  status?: string;
+  search?: string;
+  limit: number;
+  offset: number;
+}
+
+export interface DocumentListResult {
+  data: DocumentRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface DocumentStatsResult {
+  total: number;
+  byType: Record<string, number>;
+  byStatus: Record<string, number>;
+  totalSizeBytes: number;
+  totalChunks: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Adapter interface
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -117,6 +166,21 @@ export interface VectorStoreAdapter {
    * Health check — called by /healthz.
    */
   healthCheck(): Promise<VectorStoreHealthStatus>;
+
+  /**
+   * List documents from the catalog with optional filters and pagination.
+   */
+  listDocuments(opts: DocumentListOpts): Promise<DocumentListResult>;
+
+  /**
+   * Fetch a single document record by ID. Returns null if not found.
+   */
+  getDocumentById(id: string): Promise<DocumentRecord | null>;
+
+  /**
+   * Aggregate document statistics (counts by type/status, total size/chunks).
+   */
+  getDocumentStats(): Promise<DocumentStatsResult>;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -150,5 +214,17 @@ export class StubVectorStoreAdapter implements VectorStoreAdapter {
 
   async healthCheck(): Promise<VectorStoreHealthStatus> {
     return { connected: false, error: "StubVectorStoreAdapter: no real vector store configured. See docs/onboarding/03-vector-db.md" };
+  }
+
+  async listDocuments(opts: DocumentListOpts): Promise<DocumentListResult> {
+    return { data: [], total: 0, limit: opts.limit, offset: opts.offset };
+  }
+
+  async getDocumentById(_id: string): Promise<DocumentRecord | null> {
+    return null;
+  }
+
+  async getDocumentStats(): Promise<DocumentStatsResult> {
+    return { total: 0, byType: {}, byStatus: {}, totalSizeBytes: 0, totalChunks: 0 };
   }
 }

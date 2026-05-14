@@ -3,66 +3,67 @@ import {
   ListDocumentsQueryParams,
   GetDocumentParams,
 } from "@workspace/api-zod";
-import { MOCK_DOCUMENTS } from "../data/fixtures.js";
+import { container } from "@financeos/container";
 
 const router = Router();
 
-router.get("/documents", (req, res) => {
+router.get("/documents", async (req, res, next) => {
   const parsed = ListDocumentsQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({ error: "bad_request", statusCode: 400, message: parsed.error.message });
     return;
   }
   const { type, status, search, limit = 30, offset = 0 } = parsed.data;
-  let filtered = MOCK_DOCUMENTS;
-  if (type) filtered = filtered.filter((d) => d.type === type);
-  if (status) filtered = filtered.filter((d) => d.status === status);
-  if (search) {
-    const s = search.toLowerCase();
-    filtered = filtered.filter(
-      (d) =>
-        d.title.toLowerCase().includes(s) ||
-        d.filename.toLowerCase().includes(s) ||
-        d.tags.some((t: string) => t.toLowerCase().includes(s))
-    );
+
+  if (container.isStub("vectorStore")) {
+    res.json({ data: [], total: 0, limit, offset });
+    return;
   }
-  const total = filtered.length;
-  const data = filtered.slice(offset, offset + limit);
-  res.json({ data, total, limit, offset });
+
+  try {
+    const result = await container.get("vectorStore").listDocuments({ type, status, search, limit, offset });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.get("/documents/stats", (_req, res) => {
-  const byType: Record<string, number> = {};
-  const byStatus: Record<string, number> = {};
-  let totalSizeBytes = 0;
-  let totalChunks = 0;
-  for (const d of MOCK_DOCUMENTS) {
-    byType[d.type] = (byType[d.type] ?? 0) + 1;
-    byStatus[d.status] = (byStatus[d.status] ?? 0) + 1;
-    totalSizeBytes += d.sizeBytes;
-    totalChunks += d.chunkCount;
+router.get("/documents/stats", async (_req, res, next) => {
+  if (container.isStub("vectorStore")) {
+    res.json({ total: 0, byType: {}, byStatus: {}, totalSizeBytes: 0, totalChunks: 0 });
+    return;
   }
-  res.json({
-    total: MOCK_DOCUMENTS.length,
-    byType,
-    byStatus,
-    totalSizeBytes,
-    totalChunks,
-  });
+
+  try {
+    const stats = await container.get("vectorStore").getDocumentStats();
+    res.json(stats);
+  } catch (err) {
+    next(err);
+  }
 });
 
-router.get("/documents/:id", (req, res) => {
+router.get("/documents/:id", async (req, res, next) => {
   const parsed = GetDocumentParams.safeParse(req.params);
   if (!parsed.success) {
     res.status(400).json({ error: "bad_request", statusCode: 400 });
     return;
   }
-  const doc = MOCK_DOCUMENTS.find((d) => d.id === parsed.data.id);
-  if (!doc) {
+
+  if (container.isStub("vectorStore")) {
     res.status(404).json({ error: "not_found", statusCode: 404, message: "Document not found" });
     return;
   }
-  res.json(doc);
+
+  try {
+    const doc = await container.get("vectorStore").getDocumentById(parsed.data.id);
+    if (!doc) {
+      res.status(404).json({ error: "not_found", statusCode: 404, message: "Document not found" });
+      return;
+    }
+    res.json(doc);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

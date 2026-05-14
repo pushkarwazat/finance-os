@@ -1,20 +1,122 @@
 import { Router } from "express";
 import { randomUUID } from "crypto";
+import type { Logger } from "pino";
 import { SubmitQuestionBody, ListAskSessionsQueryParams } from "@workspace/api-zod";
-import { BedrockLlmAdapter } from "@financeos/adapters";
+import { container } from "@financeos/container";
+import type { LlmProviderAdapter } from "@financeos/adapters";
 import { retrievePassages, formatPassagesForPrompt } from "../lib/rag-retriever.js";
 
 const router = Router();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LLM provider — instantiated once at startup
+// SQL Warehouse grounding
+// Queries live financial data from SQL Server to ground LLM answers in numbers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const useBedrock =
-  process.env.LLM_PROVIDER === "bedrock" &&
-  process.env.AWS_REGION !== undefined;
+let _schemaDesc: string | null = null;
+let _schemaFetchedAt = 0;
+const SCHEMA_TTL_MS = 30 * 60_000;
 
-const bedrockAdapter = useBedrock ? new BedrockLlmAdapter() : null;
+async function getWarehouseSchemaDescription(): Promise<string | null> {
+  if (_schemaDesc && Date.now() - _schemaFetchedAt < SCHEMA_TTL_MS) return _schemaDesc;
+  try {
+    const db = process.env.MSSQL_DATABASE ?? "master";
+    const schema = process.env.MSSQL_SCHEMA ?? "dbo";
+    const tables = process.env.MSSQL_TABLES?.split(",").map((t) => t.trim()).filter(Boolean);
+    const info = await container.get("sqlWarehouse").describeSchema(db, schema, tables);
+    if (info.tables.length === 0) return null;
+
+    const lines: string[] = [`Database: ${info.database} | Schema: ${info.schema}`];
+    for (const t of info.tables) {
+      lines.push(`\nTable: ${t.name}`);
+      for (const c of t.columns) lines.push(`  ${c.name} (${c.type})`);
+    }
+    _schemaDesc = lines.join("\n");
+    _schemaFetchedAt = Date.now();
+    return _schemaDesc;
+  } catch {
+    return null;
+  }
+}
+
+async function groundWithSqlWarehouse(
+  question: string,
+  llm: LlmProviderAdapter,
+  requestId: string | undefined,
+  log: Logger,
+  actorId?: string,
+  actorEmail?: string,
+): Promise<string | null> {
+  const schemaDesc = await getWarehouseSchemaDescription();
+  if (!schemaDesc) return null;
+
+  // Step 1: Ask the LLM to generate a T-SQL SELECT for this question
+  let generatedSql: string;
+  try {
+    const sqlCompletion = await llm.complete({
+      model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-sonnet-20241022-v2:0",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a T-SQL expert. Generate a single SELECT query to retrieve the data needed to answer the user's finance question.\n" +
+            "Rules:\n" +
+            "- Only SELECT statements (absolutely no INSERT/UPDATE/DELETE/DROP/EXEC/ALTER)\n" +
+            "- Always add TOP 50 to limit rows\n" +
+            "- Use T-SQL syntax: GETDATE(), ISNULL(), TOP n — not MySQL/PostgreSQL syntax\n" +
+            "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
+            "Schema:\n" + schemaDesc + "\n\n" +
+            "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",
+        },
+        { role: "user", content: question },
+      ],
+      maxTokens: 400,
+      temperature: 0,
+      requestId,
+    });
+    generatedSql = sqlCompletion.choices[0]?.message.content?.trim() ?? "";
+  } catch (err) {
+    log.warn({ err }, "SQL generation LLM call failed");
+    return null;
+  }
+
+  if (!generatedSql || generatedSql === "NO_QUERY") return null;
+
+  // Strip markdown fences if the LLM included them anyway
+  generatedSql = generatedSql.replace(/^```(?:sql)?\n?/i, "").replace(/\n?```$/, "").trim();
+
+  // Step 2: Validate SELECT-only before executing
+  const upper = generatedSql.trimStart().toUpperCase();
+  if (!upper.startsWith("SELECT") && !upper.startsWith("WITH")) {
+    log.warn({ head: generatedSql.slice(0, 100) }, "SQL generation produced non-SELECT — skipping");
+    return null;
+  }
+
+  // Step 3: Execute and format as a compact markdown table
+  try {
+    const result = await container.get("sqlWarehouse").executeQuery(generatedSql, {
+      maxRows: 50,
+      timeoutMs: 15_000,
+      requestId,
+      actorId,
+      actorEmail,
+    });
+
+    if (result.rowCount === 0) return "Query returned no matching records.";
+
+    const cols = result.columns.map((c) => c.name);
+    const sep = cols.map(() => "---").join(" | ");
+    const dataRows = result.rows.map((row) =>
+      row.map((cell) => (cell === null || cell === undefined ? "NULL" : String(cell))).join(" | "),
+    );
+
+    log.info({ rowCount: result.rowCount, executionMs: result.executionMs }, "SQL warehouse grounding succeeded");
+    return [cols.join(" | "), sep, ...dataRows].join("\n");
+  } catch (err) {
+    log.warn({ err }, "SQL warehouse query execution failed");
+    return null;
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // In-memory session store
@@ -83,8 +185,11 @@ Flag material risks, anomalies, or control gaps when you identify them — inclu
 If a question is outside the finance domain, politely redirect to the appropriate team.
 Today's fiscal context: Q4 FY2025. Insurance segment GWP ~$178M. Pharmacy segment ~127K Rx/month.
 
-When you have retrieved document passages, structure your response as follows:
-1. Lead with the direct answer citing specific numbers from the documents
+When retrieved_documents are provided, ground your answer in those passages and cite specific numbers.
+When financial_data_from_sql_server is provided, treat those rows as authoritative live data — reference exact values and column names from the table. Prefer warehouse data over document passages when they conflict.
+
+Structure your response as follows:
+1. Lead with the direct answer citing specific numbers from documents or warehouse data
 2. Explain key drivers or context (note which segment — insurance or pharmacy — is relevant)
 3. Flag any risks or anomalies you observe
 4. Note any data limitations or caveats
@@ -175,7 +280,8 @@ router.post("/ask", async (req, res, next) => {
   let answer: string;
   let citations: unknown[] = [];
 
-  if (bedrockAdapter) {
+  if (!container.isStub("llmProvider")) {
+    const llm = container.get("llmProvider");
     // ── 1. RAG retrieval — embed + pgvector search ────────────────────────
     let ragResult;
     try {
@@ -205,9 +311,29 @@ router.post("/ask", async (req, res, next) => {
       ragResult = { passages: [], embeddingLatencyMs: 0, searchLatencyMs: 0, embeddingModel: "", vectorCount: 0 };
     }
 
-    // ── 2. Build grounded system prompt + conversation history ────────────
+    // ── 2. SQL warehouse grounding (optional) ────────────────────────────
+    let sqlDataBlock = "";
+    if (!container.isStub("sqlWarehouse")) {
+      try {
+        const sqlTable = await groundWithSqlWarehouse(
+          question,
+          llm,
+          res.locals.requestId,
+          req.log,
+          res.locals.user.id,
+          res.locals.user.email,
+        );
+        if (sqlTable) {
+          sqlDataBlock = `\n\n<financial_data_from_sql_server>\n${sqlTable}\n</financial_data_from_sql_server>`;
+        }
+      } catch (err) {
+        req.log.warn({ err }, "SQL grounding failed — proceeding without warehouse data");
+      }
+    }
+
+    // ── 3. Build grounded system prompt + conversation history ────────────
     const documentsBlock = formatPassagesForPrompt(ragResult.passages);
-    const systemPrompt = BASE_SYSTEM_PROMPT + documentsBlock;
+    const systemPrompt = BASE_SYSTEM_PROMPT + documentsBlock + sqlDataBlock;
 
     // Messages: system → prior turns → new user question
     const messages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
@@ -216,9 +342,9 @@ router.post("/ask", async (req, res, next) => {
       { role: "user", content: question },
     ];
 
-    // ── 3. Claude completion ──────────────────────────────────────────────
+    // ── 4. LLM completion ────────────────────────────────────────────────
     try {
-      const completion = await bedrockAdapter.complete({
+      const completion = await llm.complete({
         model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-sonnet-20241022-v2:0",
         messages,
         maxTokens: 1_500,
@@ -239,7 +365,7 @@ router.post("/ask", async (req, res, next) => {
           grounded: ragResult.passages.length > 0,
           sessionId: session.id,
         },
-        "Bedrock completion",
+        "LLM completion",
       );
     } catch (err) {
       return next(err);
