@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import helmet from "helmet";
+import path from "path";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -131,7 +132,20 @@ app.use("/api", (req, res, next) => {
 app.use("/api", router);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8. Centralised error handler — MUST be last
+// 8. Static frontend — serve built React app if STATIC_DIR is set
+//    SPA fallback sends index.html for all non-API routes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+if (process.env.STATIC_DIR) {
+  const staticDir = path.resolve(process.env.STATIC_DIR);
+  app.use(express.static(staticDir));
+  app.get("*", (_req, res) => {
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 9. Centralised error handler — MUST be last
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.use(errorHandlerMiddleware);
