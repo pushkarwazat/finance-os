@@ -139,7 +139,7 @@ app.use("/api", router);
 if (process.env.STATIC_DIR) {
   const staticDir = path.resolve(process.env.STATIC_DIR);
   app.use(express.static(staticDir));
-  app.get("*", (_req, res) => {
+  app.get("(.*)", (_req, res) => {
     res.sendFile(path.join(staticDir, "index.html"));
   });
 }
