@@ -57,9 +57,8 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
         objectSrc: ["'none'"],
-        upgradeInsecureRequests: [],
       },
     },
     crossOriginEmbedderPolicy: false,
