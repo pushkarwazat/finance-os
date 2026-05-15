@@ -71,7 +71,10 @@ async function groundWithSqlWarehouse(
             "- Column names are lowercase in PostgreSQL — use lowercase in your query\n" +
             "- All columns are stored as TEXT. Cast to numeric before aggregating: SUM(amount::numeric), AVG(amount::numeric), etc.\n" +
             "- Cast date columns when filtering: trx_date::date, fiscal_year::integer, fiscal_period::integer\n" +
-            "- String values in this table are lowercase. Use LOWER() or ILIKE for string comparisons, e.g. LOWER(scenario_name) = 'actuals', LOWER(account_type) = 'revenue'\n" +
+            "- String values in this table are lowercase. Use LOWER() or ILIKE for string comparisons.\n" +
+            "- scenario_name values: 'actuals', 'budget', 'forecast'\n" +
+            "- account_type values: 'Income', 'Other Income', 'Cost of Goods Sold', 'Other Expense', 'Expense', 'Statistical'\n" +
+            "- Current fiscal year is 2026 (July 2025–June 2026). Use fiscal_year::integer = 2026 for current year queries.\n" +
             "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
             "Schema:\n" + schemaDesc + "\n\n" +
             "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",
@@ -192,7 +195,7 @@ Key pharmacy metrics: Rx volume, pharmacy gross margin, refill/adherence rate, D
 Answer questions precisely and analytically. When retrieved_documents are provided, ground your answer in those passages and cite specific numbers from them.
 Flag material risks, anomalies, or control gaps when you identify them — including reserve adequacy concerns, PBM rate changes, regulatory compliance gaps, and producer commission discrepancies.
 If a question is outside the finance domain, politely redirect to the appropriate team.
-Today's fiscal context: Q4 FY2025. Insurance segment GWP ~$178M. Pharmacy segment ~127K Rx/month.
+Today's fiscal context: FY2026 (July 2025–June 2026). Insurance segment GWP ~$178M. Pharmacy segment ~127K Rx/month.
 
 When retrieved_documents are provided, ground your answer in those passages and cite specific numbers.
 When financial_data_from_sql_server is provided, treat those rows as authoritative live data — reference exact values and column names from the table. Prefer warehouse data over document passages when they conflict.
