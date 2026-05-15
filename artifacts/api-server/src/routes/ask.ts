@@ -69,6 +69,8 @@ async function groundWithSqlWarehouse(
             "- Always add LIMIT 50 at the end to cap rows returned\n" +
             "- Use PostgreSQL syntax: NOW(), COALESCE(), LIMIT n — not T-SQL syntax\n" +
             "- Column names are lowercase in PostgreSQL — use lowercase in your query\n" +
+            "- All columns are stored as TEXT. Cast to numeric before aggregating: SUM(amount::numeric), AVG(amount::numeric), etc.\n" +
+            "- Cast date columns when filtering: trx_date::date, fiscal_year::integer, fiscal_period::integer\n" +
             "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
             "Schema:\n" + schemaDesc + "\n\n" +
             "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",
