@@ -75,8 +75,14 @@ const replitDomains = (process.env.REPLIT_DOMAINS ?? "")
   .filter(Boolean)
   .map((d) => `https://${d}`);
 
+const extraOrigins = (process.env.ALLOWED_ORIGINS ?? "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const allowedOrigins = new Set<string>([
   ...replitDomains,
+  ...extraOrigins,
   "http://localhost:80",
   "http://localhost:5173",
   "http://localhost:24160",
