@@ -24,7 +24,9 @@ async function getWarehouseSchemaDescription(): Promise<string | null> {
     const schema = process.env.WAREHOUSE_SCHEMA ?? process.env.MSSQL_SCHEMA ?? "public";
     const tables = (process.env.WAREHOUSE_TABLES ?? process.env.MSSQL_TABLES)
       ?.split(",").map((t) => t.trim()).filter(Boolean);
+    console.log("[ask] warehouse schema lookup:", { db, schema, tables });
     const info = await container.get("sqlWarehouse").describeSchema(db, schema, tables);
+    console.log("[ask] warehouse schema result: tableCount =", info.tables.length, info.tables.map(t => t.name));
     if (info.tables.length === 0) return null;
 
     const lines: string[] = [`Database: ${info.database} | Schema: ${info.schema}`];
@@ -35,7 +37,8 @@ async function getWarehouseSchemaDescription(): Promise<string | null> {
     _schemaDesc = lines.join("\n");
     _schemaFetchedAt = Date.now();
     return _schemaDesc;
-  } catch {
+  } catch (err) {
+    console.error("[ask] warehouse schema lookup failed:", err);
     return null;
   }
 }
