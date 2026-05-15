@@ -10,6 +10,7 @@
 
 export * from "./sql-warehouse.js";
 export * from "./mssql-warehouse.js";
+export * from "./pg-warehouse.js";
 export * from "./semantic-engine.js";
 export * from "./vector-store.js";
 export * from "./pgvector-store.js";
