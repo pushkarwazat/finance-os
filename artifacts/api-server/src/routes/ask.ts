@@ -58,7 +58,7 @@ async function groundWithSqlWarehouse(
   let generatedSql: string;
   try {
     const sqlCompletion = await llm.complete({
-      model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-sonnet-20241022-v2:0",
+      model: process.env.BEDROCK_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6",
       messages: [
         {
           role: "system",
@@ -365,7 +365,7 @@ router.post("/ask", async (req, res, next) => {
     // ── 4. LLM completion ────────────────────────────────────────────────
     try {
       const completion = await llm.complete({
-        model: process.env.BEDROCK_MODEL_ID ?? "anthropic.claude-3-5-sonnet-20241022-v2:0",
+        model: process.env.BEDROCK_MODEL_ID ?? "us.anthropic.claude-sonnet-4-6",
         messages,
         maxTokens: 1_500,
         temperature: 0.1,

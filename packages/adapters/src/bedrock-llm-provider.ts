@@ -9,7 +9,7 @@
  *   AWS_REGION            — e.g. us-east-1
  *   AWS_ACCESS_KEY_ID     — omit if running with an IAM role
  *   AWS_SECRET_ACCESS_KEY — omit if running with an IAM role
- *   BEDROCK_MODEL_ID      — default: anthropic.claude-3-5-sonnet-20241022-v2:0
+ *   BEDROCK_MODEL_ID      — default: us.anthropic.claude-sonnet-4-6
  *
  * See: https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html
  */
@@ -267,7 +267,7 @@ export class BedrockLlmAdapter implements LlmProviderAdapter {
     this.defaultModelId =
       options?.modelId ??
       process.env.BEDROCK_MODEL_ID ??
-      "us.amazon.nova-pro-v1:0";
+      "us.anthropic.claude-sonnet-4-6";
     this.defaultEmbeddingModelId =
       options?.embeddingModelId ??
       process.env.BEDROCK_EMBEDDING_MODEL_ID ??
