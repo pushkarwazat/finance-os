@@ -88,9 +88,8 @@ export class PgWarehouseAdapter implements SqlWarehouseAdapter {
     const params: unknown[] = [schema];
     let tableFilter = "";
     if (tables && tables.length > 0) {
-      tables.forEach((t, i) => params.push(t));
-      tableFilter = `AND c.table_name = ANY($${params.length + 1}::text[])`;
       params.push(tables);
+      tableFilter = `AND c.table_name = ANY($${params.length}::text[])`;
     }
 
     const result = await this.pool.query<{
