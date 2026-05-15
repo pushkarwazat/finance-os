@@ -303,12 +303,31 @@ export interface Citation {
   queryId: string;
 }
 
+export type ChartDataType = (typeof ChartDataType)[keyof typeof ChartDataType];
+
+export const ChartDataType = {
+  bar: "bar",
+  line: "line",
+  pie: "pie",
+} as const;
+
+export type ChartDataDataItem = { [key: string]: unknown };
+
+export interface ChartData {
+  type: ChartDataType;
+  title: string;
+  xKey: string;
+  yKeys: string[];
+  data: ChartDataDataItem[];
+}
+
 export interface AskResponse {
   sessionId: string;
   messageId: string;
   question: string;
   answer: string;
   citations: Citation[];
+  chartData?: ChartData;
   agentId?: string;
   latencyMs?: number;
   tokens?: number;

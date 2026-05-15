@@ -5,6 +5,7 @@
  * FinanceOS Enterprise Finance AI Platform API
  * OpenAPI spec version: 1.0.0
  */
+import type { ChartData } from "./chartData";
 import type { Citation } from "./citation";
 
 export interface AskResponse {
@@ -13,6 +14,7 @@ export interface AskResponse {
   question: string;
   answer: string;
   citations: Citation[];
+  chartData?: ChartData;
   agentId?: string;
   latencyMs?: number;
   tokens?: number;

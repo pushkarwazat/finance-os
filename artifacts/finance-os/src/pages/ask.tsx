@@ -9,9 +9,13 @@ import { cn } from "@/lib/utils"
 import {
   Send, Bot, User, Loader2, ChevronDown, ChevronRight,
   BookOpen, FileText, Lock, Sparkles, AlertTriangle,
-  PlusCircle, MessageSquare, RotateCcw,
+  PlusCircle, MessageSquare, RotateCcw, BarChart2,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
+  Tooltip, CartesianGrid, Cell,
+} from "recharts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -29,12 +33,21 @@ interface AskCitation {
   sensitivityLevel?: string
 }
 
+interface ChartData {
+  type: "bar" | "line" | "pie"
+  title: string
+  data: Array<Record<string, string | number | null>>
+  xKey: string
+  yKeys: string[]
+}
+
 interface AskResponse {
   sessionId: string | null
   messageId: string
   question: string
   answer: string
   citations: AskCitation[]
+  chartData?: ChartData
   agentId: string
   latencyMs: number
   tokens: number
@@ -247,6 +260,91 @@ function CitationCard({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Chart panel
+// ─────────────────────────────────────────────────────────────────────────────
+
+const CHART_COLORS = ["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#ef4444"]
+
+function fmtValue(v: number): string {
+  const abs = Math.abs(v)
+  if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B`
+  if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000) return `$${(v / 1_000).toFixed(1)}K`
+  return `$${v.toLocaleString()}`
+}
+
+function ChartPanel({ chartData }: { chartData: ChartData }) {
+  const [open, setOpen] = useState(true)
+  const { data, xKey, yKeys } = chartData
+
+  return (
+    <div className="mt-2 space-y-1.5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+      >
+        <BarChart2 className="h-3.5 w-3.5 text-primary" />
+        <span className="font-medium">Chart</span>
+        {open
+          ? <ChevronDown className="h-3 w-3 group-hover:text-foreground" />
+          : <ChevronRight className="h-3 w-3 group-hover:text-foreground" />}
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="rounded-lg border border-border bg-background/60 p-3">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey={xKey}
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    angle={-30}
+                    textAnchor="end"
+                    interval={0}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v: number) => fmtValue(v)}
+                    width={60}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => fmtValue(value)}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                      fontSize: "11px",
+                    }}
+                  />
+                  {yKeys.map((yk, i) => (
+                    <Bar key={yk} dataKey={yk} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[3, 3, 0, 0]}>
+                      {data.map((_, ri) => (
+                        <Cell
+                          key={ri}
+                          fill={yKeys.length === 1
+                            ? CHART_COLORS[ri % CHART_COLORS.length]
+                            : CHART_COLORS[i % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Bar>
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Sources panel (inline below answer)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -433,6 +531,11 @@ function AssistantBubble({
         >
           <MarkdownLite text={msg.content} />
         </div>
+
+        {/* Chart */}
+        {resp?.chartData && (
+          <ChartPanel chartData={resp.chartData} />
+        )}
 
         {/* Citations */}
         {resp && hasCitations && (

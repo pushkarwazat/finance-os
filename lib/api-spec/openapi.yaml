@@ -1084,6 +1084,32 @@ components:
         - relevanceScore
         - queryId
 
+    ChartData:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [bar, line, pie]
+        title:
+          type: string
+        xKey:
+          type: string
+        yKeys:
+          type: array
+          items:
+            type: string
+        data:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required:
+        - type
+        - title
+        - xKey
+        - yKeys
+        - data
+
     AskResponse:
       type: object
       properties:
@@ -1101,6 +1127,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Citation"
+        chartData:
+          $ref: "#/components/schemas/ChartData"
         agentId:
           type: string
           format: uuid

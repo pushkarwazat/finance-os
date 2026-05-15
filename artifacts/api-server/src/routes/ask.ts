@@ -3,10 +3,62 @@ import { randomUUID } from "crypto";
 import type { Logger } from "pino";
 import { SubmitQuestionBody, ListAskSessionsQueryParams } from "@workspace/api-zod";
 import { container } from "@financeos/container";
-import type { LlmProviderAdapter } from "@financeos/adapters";
+import type { LlmProviderAdapter, WarehouseQueryResult } from "@financeos/adapters";
 import { retrievePassages, formatPassagesForPrompt } from "../lib/rag-retriever.js";
 
 const router = Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chart data generation
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ChartData {
+  type: "bar";
+  title: string;
+  data: Array<Record<string, string | number | null>>;
+  xKey: string;
+  yKeys: string[];
+}
+
+function buildChartData(result: WarehouseQueryResult, question: string): ChartData | null {
+  if (result.rowCount < 2 || result.rowCount > 25) return null;
+
+  const cols = result.columns;
+  if (cols.length < 2) return null;
+
+  const numericCols: string[] = [];
+  const stringCols: string[] = [];
+
+  for (let ci = 0; ci < cols.length; ci++) {
+    const colName = cols[ci].name;
+    const nonNull = result.rows
+      .map((row) => row[ci])
+      .filter((v) => v !== null && v !== undefined && String(v).trim() !== "");
+    if (nonNull.length === 0) continue;
+    const allNumeric = nonNull.every((v) => !isNaN(parseFloat(String(v))) && isFinite(Number(v)));
+    if (allNumeric) numericCols.push(colName);
+    else stringCols.push(colName);
+  }
+
+  if (numericCols.length === 0 || stringCols.length === 0) return null;
+
+  const xKey = stringCols[0];
+  const yKeys = numericCols.slice(0, 3);
+  const colIndex = (name: string) => cols.findIndex((c) => c.name === name);
+
+  const data = result.rows.map((row) => {
+    const obj: Record<string, string | number | null> = {};
+    obj[xKey] = row[colIndex(xKey)] !== null ? String(row[colIndex(xKey)]) : null;
+    for (const yk of yKeys) {
+      const v = row[colIndex(yk)];
+      obj[yk] = v !== null && v !== undefined ? parseFloat(String(v)) : null;
+    }
+    return obj;
+  });
+
+  const title = question.length > 72 ? question.slice(0, 69) + "…" : question;
+  return { type: "bar", title, data, xKey, yKeys };
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SQL Warehouse grounding
@@ -50,7 +102,7 @@ async function groundWithSqlWarehouse(
   log: Logger,
   actorId?: string,
   actorEmail?: string,
-): Promise<{ table: string; sql: string } | null> {
+): Promise<{ table: string; sql: string; chartData: ChartData | null } | null> {
   const schemaDesc = await getWarehouseSchemaDescription();
   if (!schemaDesc) return null;
 
@@ -119,7 +171,7 @@ async function groundWithSqlWarehouse(
       actorEmail,
     });
 
-    if (result.rowCount === 0) return { table: "Query returned no matching records.", sql: finalSql };
+    if (result.rowCount === 0) return { table: "Query returned no matching records.", sql: finalSql, chartData: null };
 
     const cols = result.columns.map((c) => c.name);
     const sep = cols.map(() => "---").join(" | ");
@@ -127,8 +179,9 @@ async function groundWithSqlWarehouse(
       row.map((cell) => (cell === null || cell === undefined ? "NULL" : String(cell))).join(" | "),
     );
 
-    log.info({ rowCount: result.rowCount, executionMs: result.executionMs }, "SQL warehouse grounding succeeded");
-    return { table: [cols.join(" | "), sep, ...dataRows].join("\n"), sql: finalSql };
+    const chartData = buildChartData(result, question);
+    log.info({ rowCount: result.rowCount, executionMs: result.executionMs, hasChart: !!chartData }, "SQL warehouse grounding succeeded");
+    return { table: [cols.join(" | "), sep, ...dataRows].join("\n"), sql: finalSql, chartData };
   } catch (err) {
     log.warn({ err }, "SQL warehouse query execution failed");
     return null;
@@ -296,6 +349,7 @@ router.post("/ask", async (req, res, next) => {
 
   let answer: string;
   let citations: unknown[] = [];
+  let chartData: ChartData | null = null;
 
   if (!container.isStub("llmProvider")) {
     const llm = container.get("llmProvider");
@@ -346,6 +400,7 @@ router.post("/ask", async (req, res, next) => {
             `SQL query executed:\n\`\`\`sql\n${sqlResult.sql}\n\`\`\`\n\n` +
             `Results:\n${sqlResult.table}\n` +
             `</financial_data_from_sql_server>`;
+          chartData = sqlResult.chartData ?? null;
         }
       } catch (err) {
         req.log.warn({ err }, "SQL grounding failed — proceeding without warehouse data");
@@ -410,6 +465,7 @@ router.post("/ask", async (req, res, next) => {
     question,
     answer,
     citations,
+    ...(chartData ? { chartData } : {}),
     agentId: "a0000000-0000-0000-0000-000000000099",
     latencyMs: Date.now() - startMs,
     tokens: Math.ceil(answer.length / 4),

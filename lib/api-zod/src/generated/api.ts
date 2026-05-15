@@ -184,6 +184,15 @@ export const SubmitQuestionResponse = zod.object({
       queryId: zod.string().uuid(),
     }),
   ),
+  chartData: zod
+    .object({
+      type: zod.enum(["bar", "line", "pie"]),
+      title: zod.string(),
+      xKey: zod.string(),
+      yKeys: zod.array(zod.string()),
+      data: zod.array(zod.record(zod.string(), zod.unknown())),
+    })
+    .optional(),
   agentId: zod.string().uuid().optional(),
   latencyMs: zod.number().optional(),
   tokens: zod.number().optional(),
