@@ -73,8 +73,12 @@ async function groundWithSqlWarehouse(
             "- Cast date columns when filtering: trx_date::date, fiscal_year::integer, fiscal_period::integer\n" +
             "- String values in this table are lowercase. Use LOWER() or ILIKE for string comparisons.\n" +
             "- scenario_name values: 'actuals', 'budget', 'forecast'\n" +
-            "- account_type values: 'Income', 'Other Income', 'Cost of Goods Sold', 'Other Expense', 'Expense', 'Statistical'\n" +
             "- Current fiscal year is 2026 (July 2025–June 2026). Use fiscal_year::integer = 2026 for current year queries.\n" +
+            "- REVENUE: Use gaap_l2 ILIKE '01 - NET REVENUE' to identify revenue lines. Do NOT use account_type = 'Income' for revenue.\n" +
+            "- COGS: Use gaap_l2 ILIKE '02 - COGS%' for cost of goods sold lines.\n" +
+            "- GROSS PROFIT: Use gaap_l1 ILIKE '01 - GROSS PROFIT' for all gross profit lines (revenue + COGS combined).\n" +
+            "- OPERATING EXPENSES: Use gaap_l1 ILIKE '02 - OPERATING EXPENSE'.\n" +
+            "- gaap_l1 values: '01 - GROSS PROFIT', '02 - OPERATING EXPENSE', '03 - NON OPERATING INCOME (EXPENSE)', '04 - STATISTICAL'\n" +
             "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
             "Schema:\n" + schemaDesc + "\n\n" +
             "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",

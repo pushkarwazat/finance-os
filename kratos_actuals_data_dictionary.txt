@@ -1,0 +1,158 @@
+KRATOS Actuals — Data Dictionary
+Table: kratos_actuals
+Source: FINOPS_Sandbox SQL Server
+Rows: 82,937
+Description: General ledger actuals and financial planning data exported from the KRATOS financial system. Each row represents a single journal entry line. Used for financial analysis, variance reporting, and AI-assisted queries across all company segments.
+
+=== FISCAL CALENDAR ===
+The fiscal year runs July through June. Fiscal period 1 = July, period 12 = June.
+Example: FY2026 = July 2025 through June 2026. Current fiscal year is 2026.
+
+=== TRANSACTION IDENTIFIERS ===
+ID — Unique row identifier
+LINE_UNIQUE_ID — Unique identifier for a single journal entry line
+JE_TRANSACTION_NUMBER — Journal entry transaction number in the source accounting system
+JE_DOCUMENT_NUMBER — Document reference number associated with the journal entry
+JE_NAME — Name or title of the journal entry
+JE_MEMO — Primary narrative/description field for the transaction
+
+=== SOURCE & SYSTEM ===
+SOURCE — Source system the record originated from (e.g., NetSuite, Sage)
+ACCOUNTING_SYSTEM — Name of the accounting system (e.g., NetSuite, Sage Intacct)
+DATA_TYPE — Label for a block of transactions (e.g., Actuals, Forecast Snapshot, Budget)
+CREATED_BY — User who created the record
+CREATED_DATE — Date record was created in the system
+MODIFIED_DATE — Date record was last modified
+RUN_DATE — Date the data pipeline/cube was last run
+FILE_URL — URL to the source file or attachment
+
+=== DATES & FISCAL PERIODS ===
+TRX_DATE — Transaction date. Primary date field — use this for all date-based queries.
+FISCAL_YEAR — Fiscal year (e.g., 2025 means July 2024–June 2025)
+FISCAL_YEAR_QTR — Fiscal year + quarter (e.g., 2025-Q1 = July–September 2024)
+FISCAL_PERIOD — Accounting period within the fiscal year. Period 1=July, 2=August, 3=September, 4=October, 5=November, 6=December, 7=January, 8=February, 9=March, 10=April, 11=May, 12=June.
+TRX_YEAR — Calendar year of the transaction
+TRX_YEAR_QTR — Calendar year + quarter of the transaction
+TRX_PERIOD — Calendar period of the transaction
+
+=== FINANCIAL AMOUNTS ===
+AMOUNT — Transaction amount in USD. Negative = credit, positive = debit. SUM this column for financial totals.
+AMOUNT_ABS — Absolute value of AMOUNT (always positive). Use only when direction does not matter.
+ITEM_COUNT — Quantity of items. For Invoice record types, this is the line item quantity.
+
+=== JOURNAL ENTRY CLASSIFICATION ===
+JOURNAL_TYPE — Type of journal entry (e.g., Standard, Adjusting, Closing, Accrual)
+RECORD_TYPE — NetSuite record type. Values include: Journal, Bill, Invoice, Per Capita. Determines the business context of the transaction.
+ITEM_NAME — Line item name. Populated for Invoice record types; represents the product or service billed.
+IS_TOPSIDE_JE — 1 if this is a manual topside journal entry (controller-level adjustment outside the normal close process), 0 otherwise
+IS_SYSTEM_CALCULATED — 1 if the entry was system-generated rather than manually entered
+IS_CAPITALIZED — 1 if the expenditure is capitalized to the balance sheet rather than expensed
+IS_IR — 1 if the transaction belongs to the Inside Response business segment
+
+=== ORGANIZATIONAL HIERARCHY ===
+DIVISION — Primary business segment. Values: Life, Senior, Auto, Home.
+SUBDIVISION — Granular breakdown within a division
+POD — Operating pod or team unit within a department
+SUBSIDIARY_ID — Unique ID of the legal entity
+SUBSIDIARY_L1 — Top-level legal entity
+SUBSIDIARY_L2 — Second-level subsidiary
+SUBSIDIARY_L3 — Third-level subsidiary
+SUB_DEPARTMENT_ID — Unique ID of the sub-department
+SUB_DEPARTMENT_NAME — Name of the sub-department
+DEPARTMENT_NAME — Department name. Primary field for department-level queries.
+DEPARTMENT_OWNER_L1 — Top-level department owner name
+DEPARTMENT_OWNER_L2 — Second-level department owner
+DEPARTMENT_OWNER_L3 — Third-level department owner
+USERNAME_L1 — Username of L1 department owner
+USERNAME_L2 — Username of L2 department owner
+USERNAME_L3 — Username of L3 department owner
+LOCATION_ID — Unique ID of the physical or legal location
+LOCATION_NAME — Name of the location
+
+=== ACCOUNT CLASSIFICATION ===
+ACCOUNT_ID — Unique account ID
+ACCOUNT_NUMBER — Chart of accounts number
+ACCOUNT_NAME — Chart of accounts description (human-readable account name)
+ACCOUNT_TYPE — Account type (e.g., Income, Other Income, Cost of Goods Sold, Other Expense, Expense, Statistical). Use the GAAP hierarchy instead of account_type for financial analysis.
+MGMT_L1 — Management reporting hierarchy level 1 (top-level P&L category)
+MGMT_L2 — Management reporting hierarchy level 2
+MGMT_L3 — Management reporting hierarchy level 3
+MGMT_L4 — Management reporting hierarchy level 4 (most granular management view)
+GAAP_L1 — GAAP financial statement classification level 1. Known values:
+  '01 - GROSS PROFIT' — Revenue and COGS lines
+  '02 - OPERATING EXPENSE' — Operating expenses below gross profit
+  '03 - NON OPERATING INCOME (EXPENSE)' — Below-the-line non-operating items
+  '04 - STATISTICAL' — Statistical/non-financial tracking entries
+GAAP_L2 — GAAP classification level 2. Key values:
+  '01 - NET REVENUE' — All revenue lines. Use gaap_l2 ILIKE '01 - NET REVENUE' to identify revenue.
+  '02 - COGS - SALES' — Cost of goods sold, sales-related
+  '03 - COGS - FULFILLMENT' — Cost of goods sold, fulfillment-related
+GAAP_L3 — GAAP classification level 3
+GAAP_L4 — GAAP classification level 4
+GAAP_L5 — GAAP classification level 5 (most granular GAAP view)
+
+=== P&L FLAGS ===
+IS_NET_INCOME — 1 if this line flows to Net Income
+IS_EBITDA — 1 if this line is included in EBITDA
+IS_ADJ_EBITDA — 1 if this line is included in Adjusted EBITDA
+IS_606 — 1 if this line is subject to ASC 606 revenue recognition rules
+IS_ALLOCATION — 1 if this is an allocated expense (vs a direct charge)
+ADJ_EBITDA_ADDBACK_CAPTION — Label for the Adjusted EBITDA addback (e.g., Stock Compensation, Restructuring Charges)
+
+=== ALLOCATIONS ===
+ALLOCATION_GROUPING — Grouping name for the allocation pool
+ALLOCATION_METHOD — Method used to allocate cost (e.g., headcount, revenue, square footage)
+ALLOCATION_TYPE — Type of allocation (e.g., Corporate Overhead, IT Shared Services)
+
+=== SCENARIO / PLANNING ===
+SCENARIO_NAME — Scenario label. Values: Actuals, Budget, Forecast, Prior Year Actuals. Always filter on SCENARIO_NAME when comparing plan vs actual.
+SCENARIO_TYPE — Category of scenario (e.g., Actual, Plan, Forecast)
+SCENARIO_DESCRIPTION — Full description of the scenario
+CUBE_PROCESSING_FREQUENCY — How often the data cube is refreshed (e.g., Daily, Weekly)
+CUBE_PROCESSED_DATE_TIME — Timestamp of the last cube processing run
+
+=== PRODUCT / CARRIER ===
+PRODUCT — Product line (e.g., Medicare Supplement, Term Life, Commercial Auto, Homeowners)
+CARRIER — Carrier/insurer code
+CARRIER_NAME — Name of the insurance carrier
+
+=== VENDOR ===
+VENDOR_ID — Unique vendor ID
+VENDOR_NAME — Vendor or supplier name
+VENDOR_TYPE — Category of vendor (e.g., Carrier, Supplier, Contractor)
+VENDOR_DEFAULT_ACCOUNT — Default GL account assigned to this vendor
+
+=== COLUMNS NOT USED IN QUERIES ===
+The following columns exist in the table but should be excluded from analysis:
+JE_MEMO_ALT, JE_SMART_DESC, DATE, SOURCE_TYPE, ACCOUNT_NUMBER_SAGE, IS_YTD_YTG,
+DEPARTMENT_NAME_NS, SUB_CLASS_NAME, SQ_MANUAL_MAP, CLASS_NAME, CUSTOMER_NAME,
+PLANNING_TEMPLATE, TEMPLATE_TYPE, SUB_GROUP, EE_LOOKUP, EE_ID, EE_FULL_NAME,
+EE_TITLE, EE_QUANTITY, EE_ANNUAL_SALARY, EE_ANNUAL_BONUS_PCT, EE_STATUS,
+EE_HIRE_PERIOD, EE_TERM_PERIOD
+
+=== QUERY GUIDANCE FOR AI ===
+- To get financial totals, always SUM(amount). Do not use amount_abs unless specifically asked for absolute values.
+- Always filter by scenario_name to distinguish Actuals from Budget or Forecast.
+- Use trx_date or fiscal_period + fiscal_year for date filtering. Do not use the DATE column.
+- The fiscal year runs July–June. Fiscal period 1 = July, period 12 = June.
+- Current fiscal year is 2026 (July 2025–June 2026). The only fiscal year in the table is 2026.
+- Primary grouping dimensions: division, department_name, account_name, mgmt_l1 through mgmt_l4, gaap_l1 through gaap_l5, product, carrier_name, scenario_name, fiscal_year, fiscal_period.
+- Division values: Life, Senior, Auto, Home.
+- Record types include: Journal, Bill, Invoice, Per Capita.
+- is_topside_je = 1 identifies manual controller adjustments — flag these when summarizing actuals.
+- is_allocation = 1 identifies allocated (vs direct) costs.
+- is_ir = 1 identifies Inside Response segment transactions.
+
+REVENUE IDENTIFICATION (critical):
+- Do NOT use account_type to identify revenue. The values 'Income' and 'Other Income' in account_type do NOT reliably capture all revenue.
+- Use the GAAP hierarchy instead: gaap_l2 ILIKE '01 - NET REVENUE' to find all revenue lines.
+- Example: SELECT SUM(amount::numeric) FROM kratos_actuals WHERE LOWER(scenario_name) = 'actuals' AND fiscal_year::integer = 2026 AND gaap_l2 ILIKE '01 - NET REVENUE'
+
+COGS IDENTIFICATION:
+- Use gaap_l2 ILIKE '02 - COGS%' to find all COGS lines (includes both '02 - COGS - SALES' and '03 - COGS - FULFILLMENT').
+
+GROSS PROFIT:
+- Gross profit = SUM(amount) WHERE gaap_l1 ILIKE '01 - GROSS PROFIT'
+
+OPERATING EXPENSES:
+- Operating expenses = SUM(amount) WHERE gaap_l1 ILIKE '02 - OPERATING EXPENSE'
