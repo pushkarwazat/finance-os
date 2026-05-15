@@ -71,9 +71,10 @@ async function groundWithSqlWarehouse(
             "- Column names are lowercase in PostgreSQL — use lowercase in your query\n" +
             "- All columns are stored as TEXT. Cast to numeric before aggregating: SUM(amount::numeric), AVG(amount::numeric), etc.\n" +
             "- Cast date columns when filtering: trx_date::date, fiscal_year::integer, fiscal_period::integer\n" +
-            "- String values in this table are lowercase. Use LOWER() or ILIKE for string comparisons.\n" +
-            "- scenario_name values: 'actuals', 'budget', 'forecast'\n" +
-            "- Current fiscal year is 2026 (July 2025–June 2026). Use fiscal_year::integer = 2026 for current year queries.\n" +
+            "- String values in this table are stored in UPPERCASE. Always use ILIKE for ALL string comparisons — never use = with string values.\n" +
+            "- scenario_name values: 'ACTUALS', 'BUDGET', 'FORECAST'. Use: scenario_name ILIKE 'actuals'\n" +
+            "- division values: 'LIFE', 'SENIOR', 'AUTO AND HOME', 'CORP', 'ELIMINATION', 'HEALTHCARE SERVICES', 'SQAC', 'ABSI', 'OTHER'. Auto and Home is ONE division: 'AUTO AND HOME'.\n" +
+            "- IMPORTANT: The ONLY fiscal_year in this table is 2026. Always use fiscal_year::integer = 2026. If asked for FY2025, use 2026 anyway.\n" +
             "- REVENUE: Use gaap_l2 ILIKE '01 - NET REVENUE' to identify revenue lines. Do NOT use account_type = 'Income' for revenue.\n" +
             "- COGS: Use gaap_l2 ILIKE '02 - COGS%' for cost of goods sold lines.\n" +
             "- GROSS PROFIT: Use gaap_l1 ILIKE '01 - GROSS PROFIT' for all gross profit lines (revenue + COGS combined).\n" +

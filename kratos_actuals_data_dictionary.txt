@@ -50,7 +50,7 @@ IS_CAPITALIZED — 1 if the expenditure is capitalized to the balance sheet rath
 IS_IR — 1 if the transaction belongs to the Inside Response business segment
 
 === ORGANIZATIONAL HIERARCHY ===
-DIVISION — Primary business segment. Values: Life, Senior, Auto, Home.
+DIVISION — Primary business segment. Values (stored uppercase): LIFE, SENIOR, AUTO AND HOME, CORP, ELIMINATION, HEALTHCARE SERVICES, SQAC, ABSI, OTHER. Note: Auto and Home is a single combined division stored as 'AUTO AND HOME'.
 SUBDIVISION — Granular breakdown within a division
 POD — Operating pod or team unit within a department
 SUBSIDIARY_ID — Unique ID of the legal entity
@@ -105,7 +105,7 @@ ALLOCATION_METHOD — Method used to allocate cost (e.g., headcount, revenue, sq
 ALLOCATION_TYPE — Type of allocation (e.g., Corporate Overhead, IT Shared Services)
 
 === SCENARIO / PLANNING ===
-SCENARIO_NAME — Scenario label. Values: Actuals, Budget, Forecast, Prior Year Actuals. Always filter on SCENARIO_NAME when comparing plan vs actual.
+SCENARIO_NAME — Scenario label. Values (stored uppercase): ACTUALS, BUDGET, FORECAST. Always filter on SCENARIO_NAME when comparing plan vs actual. Use ILIKE for comparisons: scenario_name ILIKE 'actuals'.
 SCENARIO_TYPE — Category of scenario (e.g., Actual, Plan, Forecast)
 SCENARIO_DESCRIPTION — Full description of the scenario
 CUBE_PROCESSING_FREQUENCY — How often the data cube is refreshed (e.g., Daily, Weekly)
@@ -137,7 +137,7 @@ EE_HIRE_PERIOD, EE_TERM_PERIOD
 - The fiscal year runs July–June. Fiscal period 1 = July, period 12 = June.
 - Current fiscal year is 2026 (July 2025–June 2026). The only fiscal year in the table is 2026.
 - Primary grouping dimensions: division, department_name, account_name, mgmt_l1 through mgmt_l4, gaap_l1 through gaap_l5, product, carrier_name, scenario_name, fiscal_year, fiscal_period.
-- Division values: Life, Senior, Auto, Home.
+- Division values (uppercase): LIFE, SENIOR, AUTO AND HOME, CORP, ELIMINATION, HEALTHCARE SERVICES, SQAC, ABSI, OTHER.
 - Record types include: Journal, Bill, Invoice, Per Capita.
 - is_topside_je = 1 identifies manual controller adjustments — flag these when summarizing actuals.
 - is_allocation = 1 identifies allocated (vs direct) costs.
