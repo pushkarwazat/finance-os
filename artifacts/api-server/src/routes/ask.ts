@@ -47,7 +47,7 @@ async function groundWithSqlWarehouse(
   log: Logger,
   actorId?: string,
   actorEmail?: string,
-): Promise<string | null> {
+): Promise<{ table: string; sql: string } | null> {
   const schemaDesc = await getWarehouseSchemaDescription();
   if (!schemaDesc) return null;
 
@@ -86,6 +86,7 @@ async function groundWithSqlWarehouse(
 
   // Strip markdown fences if the LLM included them anyway
   generatedSql = generatedSql.replace(/^```(?:sql)?\n?/i, "").replace(/\n?```$/, "").trim();
+  const finalSql = generatedSql;
 
   // Step 2: Validate SELECT-only before executing
   const upper = generatedSql.trimStart().toUpperCase();
@@ -104,7 +105,7 @@ async function groundWithSqlWarehouse(
       actorEmail,
     });
 
-    if (result.rowCount === 0) return "Query returned no matching records.";
+    if (result.rowCount === 0) return { table: "Query returned no matching records.", sql: finalSql };
 
     const cols = result.columns.map((c) => c.name);
     const sep = cols.map(() => "---").join(" | ");
@@ -113,7 +114,7 @@ async function groundWithSqlWarehouse(
     );
 
     log.info({ rowCount: result.rowCount, executionMs: result.executionMs }, "SQL warehouse grounding succeeded");
-    return [cols.join(" | "), sep, ...dataRows].join("\n");
+    return { table: [cols.join(" | "), sep, ...dataRows].join("\n"), sql: finalSql };
   } catch (err) {
     log.warn({ err }, "SQL warehouse query execution failed");
     return null;
@@ -317,7 +318,7 @@ router.post("/ask", async (req, res, next) => {
     let sqlDataBlock = "";
     if (!container.isStub("sqlWarehouse")) {
       try {
-        const sqlTable = await groundWithSqlWarehouse(
+        const sqlResult = await groundWithSqlWarehouse(
           question,
           llm,
           res.locals.requestId,
@@ -325,8 +326,12 @@ router.post("/ask", async (req, res, next) => {
           res.locals.user.id,
           res.locals.user.email,
         );
-        if (sqlTable) {
-          sqlDataBlock = `\n\n<financial_data_from_sql_server>\n${sqlTable}\n</financial_data_from_sql_server>`;
+        if (sqlResult) {
+          sqlDataBlock =
+            `\n\n<financial_data_from_sql_server>\n` +
+            `SQL query executed:\n\`\`\`sql\n${sqlResult.sql}\n\`\`\`\n\n` +
+            `Results:\n${sqlResult.table}\n` +
+            `</financial_data_from_sql_server>`;
         }
       } catch (err) {
         req.log.warn({ err }, "SQL grounding failed — proceeding without warehouse data");
