@@ -20,9 +20,10 @@ const SCHEMA_TTL_MS = 30 * 60_000;
 async function getWarehouseSchemaDescription(): Promise<string | null> {
   if (_schemaDesc && Date.now() - _schemaFetchedAt < SCHEMA_TTL_MS) return _schemaDesc;
   try {
-    const db = process.env.MSSQL_DATABASE ?? "master";
-    const schema = process.env.MSSQL_SCHEMA ?? "dbo";
-    const tables = process.env.MSSQL_TABLES?.split(",").map((t) => t.trim()).filter(Boolean);
+    const db = process.env.WAREHOUSE_DATABASE ?? process.env.MSSQL_DATABASE ?? "financeos";
+    const schema = process.env.WAREHOUSE_SCHEMA ?? process.env.MSSQL_SCHEMA ?? "public";
+    const tables = (process.env.WAREHOUSE_TABLES ?? process.env.MSSQL_TABLES)
+      ?.split(",").map((t) => t.trim()).filter(Boolean);
     const info = await container.get("sqlWarehouse").describeSchema(db, schema, tables);
     if (info.tables.length === 0) return null;
 
@@ -59,11 +60,12 @@ async function groundWithSqlWarehouse(
         {
           role: "system",
           content:
-            "You are a T-SQL expert. Generate a single SELECT query to retrieve the data needed to answer the user's finance question.\n" +
+            "You are a PostgreSQL expert. Generate a single SELECT query to retrieve the data needed to answer the user's finance question.\n" +
             "Rules:\n" +
-            "- Only SELECT statements (absolutely no INSERT/UPDATE/DELETE/DROP/EXEC/ALTER)\n" +
-            "- Always add TOP 50 to limit rows\n" +
-            "- Use T-SQL syntax: GETDATE(), ISNULL(), TOP n — not MySQL/PostgreSQL syntax\n" +
+            "- Only SELECT statements (absolutely no INSERT/UPDATE/DELETE/DROP/EXEC/ALTER/TRUNCATE)\n" +
+            "- Always add LIMIT 50 at the end to cap rows returned\n" +
+            "- Use PostgreSQL syntax: NOW(), COALESCE(), LIMIT n — not T-SQL syntax\n" +
+            "- Column names are lowercase in PostgreSQL — use lowercase in your query\n" +
             "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
             "Schema:\n" + schemaDesc + "\n\n" +
             "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",
