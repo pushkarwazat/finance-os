@@ -14,7 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
-  Tooltip, CartesianGrid, Cell,
+  Tooltip, CartesianGrid, Cell, PieChart, Pie, Legend,
 } from "recharts"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -298,44 +298,80 @@ function ChartPanel({ chartData }: { chartData: ChartData }) {
             className="overflow-hidden"
           >
             <div className="rounded-lg border border-border bg-background/60 p-3">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis
-                    dataKey={xKey}
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    angle={-30}
-                    textAnchor="end"
-                    interval={0}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                    tickFormatter={(v: number) => fmtValue(v)}
-                    width={60}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => fmtValue(value)}
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                    }}
-                  />
-                  {yKeys.map((yk, i) => (
-                    <Bar key={yk} dataKey={yk} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[3, 3, 0, 0]}>
-                      {data.map((_, ri) => (
-                        <Cell
-                          key={ri}
-                          fill={yKeys.length === 1
-                            ? CHART_COLORS[ri % CHART_COLORS.length]
-                            : CHART_COLORS[i % CHART_COLORS.length]}
-                        />
+              {chartData.type === "pie" ? (
+                <ResponsiveContainer width="100%" height={240}>
+                  <PieChart>
+                    <Pie
+                      data={data}
+                      dataKey={yKeys[0]}
+                      nameKey={xKey}
+                      cx="50%"
+                      cy="45%"
+                      outerRadius={80}
+                      label={({ name, percent }: { name: string; percent: number }) =>
+                        `${String(name).length > 10 ? String(name).slice(0, 10) + "…" : name} ${(percent * 100).toFixed(1)}%`
+                      }
+                      labelLine={false}
+                    >
+                      {data.map((_, i) => (
+                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
-                    </Bar>
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => fmtValue(value)}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: "11px",
+                      }}
+                    />
+                    <Legend
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey={xKey}
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      angle={-30}
+                      textAnchor="end"
+                      interval={0}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                      tickFormatter={(v: number) => fmtValue(v)}
+                      width={60}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => fmtValue(value)}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                        fontSize: "11px",
+                      }}
+                    />
+                    {yKeys.map((yk, i) => (
+                      <Bar key={yk} dataKey={yk} fill={CHART_COLORS[i % CHART_COLORS.length]} radius={[3, 3, 0, 0]}>
+                        {data.map((_, ri) => (
+                          <Cell
+                            key={ri}
+                            fill={yKeys.length === 1
+                              ? CHART_COLORS[ri % CHART_COLORS.length]
+                              : CHART_COLORS[i % CHART_COLORS.length]}
+                          />
+                        ))}
+                      </Bar>
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </motion.div>
         )}

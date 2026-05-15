@@ -13,7 +13,7 @@ const router = Router();
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ChartData {
-  type: "bar";
+  type: "bar" | "pie";
   title: string;
   data: Array<Record<string, string | number | null>>;
   xKey: string;
@@ -57,7 +57,9 @@ function buildChartData(result: WarehouseQueryResult, question: string): ChartDa
   });
 
   const title = question.length > 72 ? question.slice(0, 69) + "…" : question;
-  return { type: "bar", title, data, xKey, yKeys };
+  const q = question.toLowerCase();
+  const type = q.includes("pie") ? "pie" : "bar";
+  return { type, title, data, xKey, yKeys };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
