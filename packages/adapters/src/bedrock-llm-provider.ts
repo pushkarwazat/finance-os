@@ -84,9 +84,33 @@ const MODEL_LIMITS: Record<string, LlmProviderLimits> = {
     supportsJsonMode: true,
     supportsStreaming: true,
   },
+  "us.amazon.nova-pro-v1:0": {
+    maxContextTokens: 300_000,
+    maxOutputTokens: 5_120,
+    supportsToolCalls: true,
+    supportsVision: true,
+    supportsJsonMode: true,
+    supportsStreaming: true,
+  },
   "amazon.nova-lite-v1:0": {
     maxContextTokens: 300_000,
     maxOutputTokens: 5_120,
+    supportsToolCalls: true,
+    supportsVision: true,
+    supportsJsonMode: true,
+    supportsStreaming: true,
+  },
+  "us.amazon.nova-lite-v1:0": {
+    maxContextTokens: 300_000,
+    maxOutputTokens: 5_120,
+    supportsToolCalls: true,
+    supportsVision: true,
+    supportsJsonMode: true,
+    supportsStreaming: true,
+  },
+  "us.anthropic.claude-sonnet-4-6": {
+    maxContextTokens: 200_000,
+    maxOutputTokens: 8_192,
     supportsToolCalls: true,
     supportsVision: true,
     supportsJsonMode: true,
@@ -243,7 +267,7 @@ export class BedrockLlmAdapter implements LlmProviderAdapter {
     this.defaultModelId =
       options?.modelId ??
       process.env.BEDROCK_MODEL_ID ??
-      "anthropic.claude-3-5-sonnet-20241022-v2:0";
+      "us.amazon.nova-pro-v1:0";
     this.defaultEmbeddingModelId =
       options?.embeddingModelId ??
       process.env.BEDROCK_EMBEDDING_MODEL_ID ??
