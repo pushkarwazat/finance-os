@@ -71,6 +71,7 @@ async function groundWithSqlWarehouse(
             "- Column names are lowercase in PostgreSQL — use lowercase in your query\n" +
             "- All columns are stored as TEXT. Cast to numeric before aggregating: SUM(amount::numeric), AVG(amount::numeric), etc.\n" +
             "- Cast date columns when filtering: trx_date::date, fiscal_year::integer, fiscal_period::integer\n" +
+            "- String values in this table are lowercase. Use LOWER() or ILIKE for string comparisons, e.g. LOWER(scenario_name) = 'actuals', LOWER(account_type) = 'revenue'\n" +
             "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
             "Schema:\n" + schemaDesc + "\n\n" +
             "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",
