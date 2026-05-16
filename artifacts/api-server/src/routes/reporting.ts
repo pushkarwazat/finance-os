@@ -1,7 +1,176 @@
 import { Router } from "express";
 import { z } from "zod";
+import { container } from "@financeos/container";
 
 const router = Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SQL-backed KPI helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface KpiCard {
+  title: string; metricSlug: string; value: number; format: string;
+  variance: number; variancePct: number; comparisonLabel: string; trendDirection: string; isMaterial: boolean;
+}
+
+let _kpiCache: KpiCard[] | null = null;
+let _kpiFetchedAt = 0;
+const KPI_TTL_MS = 30 * 60_000;
+
+async function fetchKpiCardsFromSql(): Promise<KpiCard[]> {
+  if (_kpiCache && Date.now() - _kpiFetchedAt < KPI_TTL_MS) return _kpiCache;
+
+  const wh = container.get("sqlWarehouse");
+  const FY = 2026;
+
+  const run = (sql: string) => wh.executeQuery(sql, { maxRows: 20 });
+
+  // Run all queries in parallel
+  const [revRow, divRows, gpRow, opexRow, ebitdaRow] = await Promise.all([
+    // 1. Total revenue: actuals vs budget
+    run(`SELECT
+           SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actuals,
+           SUM(CASE WHEN scenario_name ILIKE 'budget'  THEN amount::numeric ELSE 0 END) AS budget
+         FROM kratos_actuals
+         WHERE gaap_l2 ILIKE '01 - NET REVENUE' AND fiscal_year::integer = ${FY}`),
+
+    // 2. Revenue by division (actuals)
+    run(`SELECT division, SUM(amount::numeric) AS revenue
+         FROM kratos_actuals
+         WHERE gaap_l2 ILIKE '01 - NET REVENUE'
+           AND scenario_name ILIKE 'actuals'
+           AND fiscal_year::integer = ${FY}
+           AND division NOT ILIKE 'ELIMINATION'
+         GROUP BY division ORDER BY revenue DESC LIMIT 10`),
+
+    // 3. Gross profit: actuals vs budget
+    run(`SELECT
+           SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actuals,
+           SUM(CASE WHEN scenario_name ILIKE 'budget'  THEN amount::numeric ELSE 0 END) AS budget
+         FROM kratos_actuals
+         WHERE gaap_l1 ILIKE '01 - GROSS PROFIT' AND fiscal_year::integer = ${FY}`),
+
+    // 4. Operating expenses: actuals vs budget
+    run(`SELECT
+           SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actuals,
+           SUM(CASE WHEN scenario_name ILIKE 'budget'  THEN amount::numeric ELSE 0 END) AS budget
+         FROM kratos_actuals
+         WHERE gaap_l1 ILIKE '02 - OPERATING EXPENSE' AND fiscal_year::integer = ${FY}`),
+
+    // 5. EBITDA: actuals vs budget
+    run(`SELECT
+           SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actuals,
+           SUM(CASE WHEN scenario_name ILIKE 'budget'  THEN amount::numeric ELSE 0 END) AS budget
+         FROM kratos_actuals
+         WHERE is_ebitda = '1' AND fiscal_year::integer = ${FY}`),
+  ]);
+
+  const cell = (result: typeof revRow, col: string): number => {
+    const ci = result.columns.findIndex((c) => c.name === col);
+    return ci >= 0 ? parseFloat(String(result.rows[0]?.[ci] ?? "0")) || 0 : 0;
+  };
+
+  const variance = (actual: number, budget: number): { pct: number; label: string; direction: string } => {
+    if (!budget) return { pct: 0, label: "YTD FY2026", direction: "neutral" };
+    const pct = (actual - budget) / Math.abs(budget);
+    return {
+      pct,
+      label: `vs Budget $${(budget / 1_000_000).toFixed(1)}M`,
+      direction: pct >= 0 ? "favourable" : "unfavourable",
+    };
+  };
+
+  const revActuals = cell(revRow, "actuals");
+  const revBudget = cell(revRow, "budget");
+  const gpActuals = cell(gpRow, "actuals");
+  const gpBudget = cell(gpRow, "budget");
+  const opexActuals = Math.abs(cell(opexRow, "actuals"));
+  const opexBudget = Math.abs(cell(opexRow, "budget"));
+  const ebitdaActuals = cell(ebitdaRow, "actuals");
+  const ebitdaBudget = cell(ebitdaRow, "budget");
+
+  const revV = variance(revActuals, revBudget);
+  const gpV = variance(gpActuals, gpBudget);
+  // For opex, spending less than budget = favourable
+  const opexV = {
+    pct: opexBudget ? (opexActuals - opexBudget) / Math.abs(opexBudget) : 0,
+    label: opexBudget ? `vs Budget $${(opexBudget / 1_000_000).toFixed(1)}M` : "YTD FY2026",
+    direction: opexBudget ? (opexActuals <= opexBudget ? "favourable" : "unfavourable") : "neutral",
+  };
+  const ebitdaV = variance(ebitdaActuals, ebitdaBudget);
+
+  // Division revenue cards (top 4)
+  const divColIdx = divRows.columns.findIndex((c) => c.name === "division");
+  const revColIdx = divRows.columns.findIndex((c) => c.name === "revenue");
+  const topDivisions = divRows.rows.slice(0, 4).map((row) => ({
+    division: String(row[divColIdx] ?? "").replace(/_/g, " "),
+    revenue: parseFloat(String(row[revColIdx] ?? "0")) || 0,
+  }));
+
+  const divCards: KpiCard[] = topDivisions.map((d) => ({
+    title: `${d.division.charAt(0) + d.division.slice(1).toLowerCase()} Revenue`,
+    metricSlug: `revenue_${d.division.toLowerCase().replace(/\s+/g, "_")}`,
+    value: d.revenue,
+    format: "currency",
+    variance: 0,
+    variancePct: 0,
+    comparisonLabel: "YTD FY2026 Actuals",
+    trendDirection: "neutral",
+    isMaterial: false,
+  }));
+
+  const cards: KpiCard[] = [
+    {
+      title: "Total Revenue",
+      metricSlug: "total_revenue",
+      value: revActuals,
+      format: "currency",
+      variance: revActuals - revBudget,
+      variancePct: revV.pct,
+      comparisonLabel: revV.label,
+      trendDirection: revV.direction,
+      isMaterial: Math.abs(revV.pct) > 0.05,
+    },
+    {
+      title: "Gross Profit",
+      metricSlug: "gross_profit",
+      value: gpActuals,
+      format: "currency",
+      variance: gpActuals - gpBudget,
+      variancePct: gpV.pct,
+      comparisonLabel: gpV.label,
+      trendDirection: gpV.direction,
+      isMaterial: Math.abs(gpV.pct) > 0.05,
+    },
+    {
+      title: "EBITDA",
+      metricSlug: "ebitda",
+      value: ebitdaActuals,
+      format: "currency",
+      variance: ebitdaActuals - ebitdaBudget,
+      variancePct: ebitdaV.pct,
+      comparisonLabel: ebitdaV.label,
+      trendDirection: ebitdaV.direction,
+      isMaterial: Math.abs(ebitdaV.pct) > 0.05,
+    },
+    {
+      title: "Operating Expenses",
+      metricSlug: "opex",
+      value: opexActuals,
+      format: "currency",
+      variance: opexActuals - opexBudget,
+      variancePct: opexV.pct,
+      comparisonLabel: opexV.label,
+      trendDirection: opexV.direction,
+      isMaterial: Math.abs(opexV.pct) > 0.05,
+    },
+    ...divCards,
+  ];
+
+  _kpiCache = cards;
+  _kpiFetchedAt = Date.now();
+  return cards;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock data
@@ -70,17 +239,28 @@ const MOCK_KPI_CARDS = [
 // Routes
 // ─────────────────────────────────────────────────────────────────────────────
 
-router.get("/reporting/dashboard", (_req, res) => {
+router.get("/reporting/dashboard", async (_req, res, next) => {
+  let kpiCards = MOCK_KPI_CARDS;
+
+  if (!container.isStub("sqlWarehouse")) {
+    try {
+      kpiCards = await fetchKpiCardsFromSql();
+    } catch (err) {
+      console.error("[reporting/dashboard] SQL KPI fetch failed, falling back to mock:", err);
+    }
+  }
+
   res.json({
     data: {
-      fiscalPeriod: "2026-Q1",
-      kpiCards: MOCK_KPI_CARDS,
+      fiscalPeriod: "FY2026 YTD",
+      kpiCards,
       totalReports: MOCK_TEMPLATES.length,
       pendingApproval: MOCK_RUNS.filter((r) => r.narrativeApprovalStatus === "pending").length,
       publishedThisWeek: MOCK_RUNS.filter((r) => r.status === "published").length,
-      lastRefreshedAt: "2026-04-28T07:00:00Z",
+      lastRefreshedAt: new Date().toISOString(),
     },
   });
+  void next;
 });
 
 router.get("/reporting/templates", (req, res) => {

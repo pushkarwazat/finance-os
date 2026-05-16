@@ -63,7 +63,7 @@ export function ExecutiveDashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Executive Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          CFO-level overview · Q1 FY2026 · AI Insights + KPI Scorecard
+          CFO-level overview · {dashboard.data?.data?.fiscalPeriod ?? "FY2026 YTD"} · Live GL Data + AI Insights
         </p>
       </div>
 
