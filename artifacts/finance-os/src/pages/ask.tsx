@@ -299,39 +299,50 @@ function ChartPanel({ chartData }: { chartData: ChartData }) {
           >
             <div className="rounded-lg border border-border bg-background/60 p-3">
               {chartData.type === "pie" ? (
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie
-                      data={data}
-                      dataKey={yKeys[0]}
-                      nameKey={xKey}
-                      cx="50%"
-                      cy="45%"
-                      outerRadius={80}
-                      label={({ name, percent }: { name: string; percent: number }) =>
-                        `${String(name).length > 10 ? String(name).slice(0, 10) + "…" : name} ${(percent * 100).toFixed(1)}%`
-                      }
-                      labelLine={false}
-                    >
-                      {data.map((_, i) => (
-                        <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value: number) => fmtValue(value)}
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                      }}
-                    />
-                    <Legend
-                      iconSize={8}
-                      wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="space-y-2">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={data}
+                        dataKey={yKeys[0]}
+                        nameKey={xKey}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={52}
+                        outerRadius={88}
+                        paddingAngle={2}
+                      >
+                        {data.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number, name: string) => [fmtValue(value), name]}
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                          fontSize: "11px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Custom legend */}
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 px-1">
+                    {data.map((row, i) => {
+                      const total = data.reduce((s, r) => s + (Number(r[yKeys[0]]) || 0), 0)
+                      const val = Number(row[yKeys[0]]) || 0
+                      const pct = total > 0 ? ((val / total) * 100).toFixed(1) : "0"
+                      return (
+                        <div key={i} className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: CHART_COLORS[i % CHART_COLORS.length] }} />
+                          <span className="text-[10px] text-muted-foreground truncate">{String(row[xKey])}</span>
+                          <span className="text-[10px] font-mono text-foreground shrink-0 ml-auto">{pct}%</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
               ) : (
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data} margin={{ top: 4, right: 8, left: 8, bottom: 40 }}>
