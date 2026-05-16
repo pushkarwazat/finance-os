@@ -92,11 +92,11 @@ GAAP_L4 — GAAP classification level 4
 GAAP_L5 — GAAP classification level 5 (most granular GAAP view)
 
 === P&L FLAGS ===
-IS_NET_INCOME — 1 if this line flows to Net Income
-IS_EBITDA — 1 if this line is included in EBITDA
-IS_ADJ_EBITDA — 1 if this line is included in Adjusted EBITDA
-IS_606 — 1 if this line is subject to ASC 606 revenue recognition rules
-IS_ALLOCATION — 1 if this is an allocated expense (vs a direct charge)
+IS_NET_INCOME — 'YES' if this line flows to Net Income, 'NO' otherwise
+IS_EBITDA — 'YES' if this line is included in EBITDA, 'NO' otherwise. Use: is_ebitda ILIKE 'yes'
+IS_ADJ_EBITDA — 'YES' if this line is included in Adjusted EBITDA, 'NO' otherwise
+IS_606 — 'YES' if this line is subject to ASC 606 revenue recognition rules, 'NO' otherwise
+IS_ALLOCATION — 'YES' if this is an allocated expense (vs a direct charge), 'NO' otherwise
 ADJ_EBITDA_ADDBACK_CAPTION — Label for the Adjusted EBITDA addback (e.g., Stock Compensation, Restructuring Charges)
 
 === ALLOCATIONS ===

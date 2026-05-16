@@ -134,6 +134,9 @@ async function groundWithSqlWarehouse(
             "- GROSS PROFIT: Use gaap_l1 ILIKE '01 - GROSS PROFIT' for all gross profit lines (revenue + COGS combined).\n" +
             "- OPERATING EXPENSES: Use gaap_l1 ILIKE '02 - OPERATING EXPENSE'.\n" +
             "- gaap_l1 values: '01 - GROSS PROFIT', '02 - OPERATING EXPENSE', '03 - NON OPERATING INCOME (EXPENSE)', '04 - STATISTICAL'\n" +
+            "- P&L FLAG COLUMNS use 'YES'/'NO' values (not 1/0): is_ebitda, is_adj_ebitda, is_net_income, is_606, is_allocation. Use: is_ebitda ILIKE 'yes'\n" +
+            "- EBITDA: SUM(amount::numeric) WHERE is_ebitda ILIKE 'yes'\n" +
+            "- NET INCOME: SUM(amount::numeric) WHERE is_net_income ILIKE 'yes'\n" +
             "- If the question cannot be answered using SQL from this schema, respond with exactly: NO_QUERY\n\n" +
             "Schema:\n" + schemaDesc + "\n\n" +
             "Respond with ONLY the raw SQL query or NO_QUERY. No markdown fences, no explanation.",

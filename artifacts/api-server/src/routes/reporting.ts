@@ -62,7 +62,7 @@ async function fetchKpiCardsFromSql(): Promise<KpiCard[]> {
            SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actuals,
            SUM(CASE WHEN scenario_name ILIKE 'budget'  THEN amount::numeric ELSE 0 END) AS budget
          FROM kratos_actuals
-         WHERE is_ebitda = '1' AND fiscal_year::integer = ${FY}`),
+         WHERE is_ebitda ILIKE 'yes' AND fiscal_year::integer = ${FY}`),
   ]);
 
   const cell = (result: typeof revRow, col: string): number => {
