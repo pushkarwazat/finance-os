@@ -267,10 +267,10 @@ const CHART_COLORS = ["#6366f1", "#22d3ee", "#f59e0b", "#10b981", "#ef4444"]
 
 function fmtValue(v: number): string {
   const abs = Math.abs(v)
-  if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(1)}B`
-  if (abs >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
-  if (abs >= 1_000) return `$${(v / 1_000).toFixed(1)}K`
-  return `$${v.toLocaleString()}`
+  if (abs >= 1_000_000_000) return `$${(v / 1_000_000_000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}B`
+  if (abs >= 1_000_000) return `$${(v / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
+  if (abs >= 1_000) return `$${Math.round(v / 1_000).toLocaleString()}K`
+  return `$${Math.round(v).toLocaleString()}`
 }
 
 function ChartPanel({ chartData }: { chartData: ChartData }) {

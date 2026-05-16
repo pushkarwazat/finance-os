@@ -27,15 +27,16 @@ function TrendIcon({ direction }: { direction: string }) {
 
 function formatValue(value: number, format: string) {
   if (format === "currency") {
-    if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`
-    if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(0)}K`
-    return `$${value.toFixed(0)}`
+    if (Math.abs(value) >= 1_000_000_000) return `$${(value / 1_000_000_000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}B`
+    if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
+    if (Math.abs(value) >= 1_000) return `$${Math.round(value / 1_000).toLocaleString()}K`
+    return `$${Math.round(value).toLocaleString()}`
   }
   if (format === "percentage") return `${(value * 100).toFixed(1)}%`
   if (format === "days") return `${value}d`
   if (format === "count") {
-    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
-    if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}K`
+    if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}M`
+    if (Math.abs(value) >= 1_000) return `${(value / 1_000).toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`
     return value.toLocaleString()
   }
   return String(value)
