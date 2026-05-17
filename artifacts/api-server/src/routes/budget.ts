@@ -5,8 +5,74 @@ import {
   BudgetModelSummarySchema,
 } from "@financeos/agents";
 import { isMaterial, requiresDualApproval } from "@financeos/governance";
+import { container } from "@financeos/container";
 
 const router = Router();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SQL-backed budget vs actuals
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface VsActualsLine {
+  label: string; slug: string;
+  actual: number; budget: number; variance: number; variancePct: number; isFavourable: boolean;
+}
+interface VsActualsResult { pl: VsActualsLine[]; divisions: VsActualsLine[]; }
+
+let _vsCache: VsActualsResult | null = null;
+let _vsFetchedAt = 0;
+const VS_TTL_MS = 30 * 60_000;
+
+async function fetchVsActualsFromSql(): Promise<VsActualsResult> {
+  if (_vsCache && Date.now() - _vsFetchedAt < VS_TTL_MS) return _vsCache;
+
+  const wh = container.get("sqlWarehouse");
+  const FY = 2026;
+  const run = (sql: string) => wh.executeQuery(sql, { maxRows: 50 });
+
+  const [revRow, gpRow, opexRow, ebitdaRow, divRows] = await Promise.all([
+    run(`SELECT SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l2 ILIKE '01 - NET REVENUE'`),
+    run(`SELECT SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l1 ILIKE '01 - GROSS PROFIT'`),
+    run(`SELECT SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l1 ILIKE '02 - OPERATING EXPENSE'`),
+    run(`SELECT SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND is_ebitda ILIKE 'yes'`),
+    run(`SELECT division, SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l2 ILIKE '01 - NET REVENUE' AND division NOT ILIKE 'ELIMINATION' GROUP BY division ORDER BY budget DESC`),
+  ]);
+
+  const cell = (result: typeof revRow, col: string): number => {
+    const ci = result.columns.findIndex((c) => c.name === col);
+    return ci >= 0 ? parseFloat(String(result.rows[0]?.[ci] ?? "0")) || 0 : 0;
+  };
+
+  const makeLine = (label: string, slug: string, actual: number, budget: number, higherIsBetter = true): VsActualsLine => {
+    const variance = actual - budget;
+    const variancePct = budget !== 0 ? variance / Math.abs(budget) : 0;
+    return { label, slug, actual, budget, variance, variancePct, isFavourable: higherIsBetter ? variance >= 0 : variance <= 0 };
+  };
+
+  const pl: VsActualsLine[] = [
+    makeLine("Total Revenue",        "revenue",     cell(revRow, "actual"),               cell(revRow, "budget")),
+    makeLine("Gross Profit",         "gross_profit", cell(gpRow, "actual"),               cell(gpRow, "budget")),
+    makeLine("EBITDA",               "ebitda",       cell(ebitdaRow, "actual"),            cell(ebitdaRow, "budget")),
+    makeLine("Operating Expenses",   "opex",         Math.abs(cell(opexRow, "actual")),    Math.abs(cell(opexRow, "budget")), false),
+  ];
+
+  const divColIdx  = divRows.columns.findIndex((c) => c.name === "division");
+  const actColIdx  = divRows.columns.findIndex((c) => c.name === "actual");
+  const budColIdx  = divRows.columns.findIndex((c) => c.name === "budget");
+
+  const divisions: VsActualsLine[] = divRows.rows.map((row) => {
+    const div    = String(row[divColIdx] ?? "");
+    const actual = parseFloat(String(row[actColIdx] ?? "0")) || 0;
+    const budget = parseFloat(String(row[budColIdx] ?? "0")) || 0;
+    const label  = div.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+    return makeLine(label, `div_${div.toLowerCase().replace(/\s+/g, "_")}`, actual, budget);
+  });
+
+  const result: VsActualsResult = { pl, divisions };
+  _vsCache = result;
+  _vsFetchedAt = Date.now();
+  return result;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Mock data — replace with real warehouse queries via SqlWarehouseAdapter
@@ -187,6 +253,19 @@ router.post("/budget/models/:id/approve", (req, res) => {
     approvalAction: "budget.approve",
     thresholdAmountUsd: model.totalBudgetedRevenue ?? 0,
   });
+});
+
+router.get("/budget/vs-actuals", async (_req, res, next) => {
+  if (container.isStub("sqlWarehouse")) {
+    res.json({ pl: [], divisions: [] });
+    return;
+  }
+  try {
+    const data = await fetchVsActualsFromSql();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;
