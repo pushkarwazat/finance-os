@@ -29,7 +29,6 @@ const navigation = [
   { name: "AI Insights", href: "/ai-insights", icon: Lightbulb },
   { name: "Report Builder", href: "/report-builder", icon: Hammer },
   { name: "Evals", href: "/evals", icon: Activity },
-  { name: "Glossary", href: "/glossary", icon: BookOpen },
   { name: "Requirements", href: "/requirements", icon: ClipboardList },
 ]
 
