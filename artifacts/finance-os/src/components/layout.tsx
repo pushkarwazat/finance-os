@@ -19,7 +19,6 @@ const navigation = [
   { name: "Exec Dashboard", href: "/executive-dashboard", icon: LayoutDashboard },
   { name: "Ask AI", href: "/ask", icon: MessageSquare },
   { name: "Variance", href: "/variance", icon: LineChart },
-  { name: "Agents", href: "/agents", icon: Bot },
   { name: "Budget", href: "/budget", icon: DollarSign },
   { name: "Reporting", href: "/reporting", icon: FileBarChart2 },
   { name: "Forecasting", href: "/forecasting", icon: TrendingUp },
