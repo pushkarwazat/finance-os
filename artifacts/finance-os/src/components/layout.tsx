@@ -19,7 +19,6 @@ const navigation = [
   { name: "Exec Dashboard", href: "/executive-dashboard", icon: LayoutDashboard },
   { name: "Ask AI", href: "/ask", icon: MessageSquare },
   { name: "Variance", href: "/variance", icon: LineChart },
-  { name: "Documents", href: "/documents", icon: FileText },
   { name: "Agents", href: "/agents", icon: Bot },
   { name: "Budget", href: "/budget", icon: DollarSign },
   { name: "Reporting", href: "/reporting", icon: FileBarChart2 },
@@ -29,6 +28,7 @@ const navigation = [
   { name: "Report Builder", href: "/report-builder", icon: Hammer },
   { name: "Evals", href: "/evals", icon: Activity },
   { name: "Requirements", href: "/requirements", icon: ClipboardList },
+  { name: "Documents", href: "/documents", icon: FileText },
 ]
 
 const ROLE_LABELS: Record<string, string> = {
