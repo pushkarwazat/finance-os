@@ -17,7 +17,6 @@ import {
 
 const navigation = [
   { name: "Exec Dashboard", href: "/executive-dashboard", icon: LayoutDashboard },
-  { name: "Metrics", href: "/metrics", icon: BarChart3 },
   { name: "Ask AI", href: "/ask", icon: MessageSquare },
   { name: "Variance", href: "/variance", icon: LineChart },
   { name: "Documents", href: "/documents", icon: FileText },
