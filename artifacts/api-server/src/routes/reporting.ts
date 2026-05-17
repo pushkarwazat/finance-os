@@ -173,6 +173,64 @@ async function fetchKpiCardsFromSql(): Promise<KpiCard[]> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// P&L drilldown report
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface PlRow { gaap_l1: string; gaap_l2: string; gaap_l3: string; gaap_l4: string; actual: number; budget: number; }
+
+let _plCache: PlRow[] | null = null;
+let _plFetchedAt = 0;
+const PL_TTL_MS = 30 * 60_000;
+
+async function fetchPlReport(): Promise<PlRow[]> {
+  if (_plCache && Date.now() - _plFetchedAt < PL_TTL_MS) return _plCache;
+
+  const wh = container.get("sqlWarehouse");
+  const result = await wh.executeQuery(
+    `SELECT
+       COALESCE(gaap_l1, 'Unclassified') AS gaap_l1,
+       COALESCE(gaap_l2, 'Unclassified') AS gaap_l2,
+       COALESCE(gaap_l3, 'Unclassified') AS gaap_l3,
+       COALESCE(gaap_l4, 'Unclassified') AS gaap_l4,
+       SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual,
+       SUM(CASE WHEN scenario_name ILIKE 'budget'  THEN amount::numeric ELSE 0 END) AS budget
+     FROM kratos_actuals
+     WHERE fiscal_year::integer = 2026
+       AND gaap_l1 NOT ILIKE '04 - STATISTICAL'
+       AND gaap_l1 IS NOT NULL
+     GROUP BY gaap_l1, gaap_l2, gaap_l3, gaap_l4
+     ORDER BY gaap_l1, gaap_l2, gaap_l3, gaap_l4`,
+    { maxRows: 5000 }
+  );
+
+  const ci = (name: string) => result.columns.findIndex((c) => c.name === name);
+  const rows: PlRow[] = result.rows.map((row) => ({
+    gaap_l1: String(row[ci("gaap_l1")] ?? ""),
+    gaap_l2: String(row[ci("gaap_l2")] ?? ""),
+    gaap_l3: String(row[ci("gaap_l3")] ?? ""),
+    gaap_l4: String(row[ci("gaap_l4")] ?? ""),
+    actual:  parseFloat(String(row[ci("actual")] ?? "0")) || 0,
+    budget:  parseFloat(String(row[ci("budget")] ?? "0")) || 0,
+  }));
+
+  _plCache = rows;
+  _plFetchedAt = Date.now();
+  return rows;
+}
+
+router.get("/reporting/pl-report", async (_req, res, next) => {
+  if (container.isStub("sqlWarehouse")) {
+    res.json({ data: [] });
+    return;
+  }
+  try {
+    res.json({ data: await fetchPlReport() });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Mock data
 // ─────────────────────────────────────────────────────────────────────────────
 

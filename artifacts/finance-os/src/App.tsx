@@ -33,6 +33,7 @@ import { MarginOptimizationPage } from "@/pages/margin-optimization"
 import { CostReductionPage } from "@/pages/cost-reduction"
 import { BoardPackPage } from "@/pages/board-pack"
 import { ReportBuilderPage } from "@/pages/report-builder"
+import { PlReportPage } from "@/pages/pl-report"
 import { InsightDetailPage } from "@/pages/insight-detail"
 import { RecommendationReviewPage } from "@/pages/recommendation-review"
 
@@ -61,6 +62,7 @@ function Router() {
           <Route path="/requirements" component={RequirementsInspectorPage} />
           <Route path="/executive-dashboard" component={ExecutiveDashboardPage} />
           <Route path="/reporting" component={ReportingCenterPage} />
+          <Route path="/reporting/pl" component={PlReportPage} />
           <Route path="/forecasting" component={ForecastingWorkbenchPage} />
           <Route path="/scenarios" component={ScenarioLabPage} />
           <Route path="/ai-insights" component={AiInsightsPage} />

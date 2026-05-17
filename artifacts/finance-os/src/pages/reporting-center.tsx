@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { AlertTriangle, CheckCircle2, Clock, RefreshCw, FileText, Calendar } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Clock, RefreshCw, FileText, Calendar, BarChart2 } from "lucide-react"
+import { Link } from "wouter"
 
 const BASE = import.meta.env.BASE_URL
 
@@ -102,6 +103,24 @@ export function ReportingCenterPage() {
           are blocked until the CFO or Controller approves.
         </AlertDescription>
       </Alert>
+
+      {/* Live reports */}
+      <div>
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Live Reports</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Link href="/reporting/pl">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer h-full">
+              <CardContent className="p-4 flex items-start gap-3">
+                <BarChart2 className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-medium">P&amp;L Drilldown</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">GAAP L1 → L4 · Budget vs Actuals · FY2026</div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+      </div>
 
       {/* Run summary */}
       {runSummary && (
