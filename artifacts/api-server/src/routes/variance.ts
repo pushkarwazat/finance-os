@@ -42,7 +42,7 @@ async function fetchVarianceAnalysis(): Promise<VarianceAnalysis> {
     run(`SELECT SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND is_ebitda ILIKE 'yes'`),
     run(`SELECT division, SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l2 ILIKE '01 - NET REVENUE' AND division NOT ILIKE 'ELIMINATION' GROUP BY division ORDER BY ABS(SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) - SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END)) DESC`),
     run(`SELECT department_name, SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND is_net_income ILIKE 'yes' AND gaap_l1 NOT ILIKE '04 - STATISTICAL' GROUP BY department_name HAVING ABS(SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) - SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END)) > 500000 ORDER BY ABS(SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) - SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END)) DESC LIMIT 15`),
-    run(`SELECT fiscal_period, SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l2 ILIKE '01 - NET REVENUE' GROUP BY fiscal_period ORDER BY fiscal_period::integer`),
+    run(`SELECT (fiscal_period::integer % 100) AS period_num, SUM(CASE WHEN scenario_name ILIKE 'actuals' THEN amount::numeric ELSE 0 END) AS actual, SUM(CASE WHEN scenario_name ILIKE 'budget' THEN amount::numeric ELSE 0 END) AS budget FROM kratos_actuals WHERE fiscal_year::integer = ${FY} AND gaap_l2 ILIKE '01 - NET REVENUE' GROUP BY (fiscal_period::integer % 100) ORDER BY (fiscal_period::integer % 100)`),
   ]);
 
   const cell = (result: typeof revRow, col: string): number => {
@@ -78,7 +78,7 @@ async function fetchVarianceAnalysis(): Promise<VarianceAnalysis> {
   });
 
   const periods: PeriodRow[] = periodRows.rows.map((row) => {
-    const period = parseInt(String(row[idx(periodRows, "fiscal_period")] ?? "0")) || 0;
+    const period = parseInt(String(row[idx(periodRows, "period_num")] ?? "0")) || 0;
     const actual = parseFloat(String(row[idx(periodRows, "actual")] ?? "0")) || 0;
     const budget = parseFloat(String(row[idx(periodRows, "budget")] ?? "0")) || 0;
     return { period, label: PERIOD_LABELS[period] ?? `P${period}`, actual, budget, variance: actual - budget };
